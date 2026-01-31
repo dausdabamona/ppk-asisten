@@ -20,7 +20,8 @@ const DipaListView = () => import('../views/master/DipaListView.vue');
 const DipaDetailView = () => import('../views/master/DipaDetailView.vue');
 const DipaUploadView = () => import('../views/master/DipaUploadView.vue');
 const DipaItemBrowseView = () => import('../views/master/DipaItemBrowseView.vue');
-const SbmView = () => import('../views/master/SbmView.vue');
+const SbmListView = () => import('../views/master/SbmListView.vue');
+const SbmDetailView = () => import('../views/master/SbmDetailView.vue');
 
 // Transaction
 const RequestList = () => import('../views/RequestList.vue');
@@ -128,8 +129,29 @@ const routes = [
       {
         path: 'master/sbm',
         name: 'MasterSbm',
-        component: SbmView,
+        component: SbmListView,
         meta: { title: 'Master SBM', icon: 'calculator', parent: 'Master Data' }
+      },
+      {
+        path: 'master/sbm/:id',
+        name: 'SbmDetail',
+        component: SbmDetailView,
+        props: true,
+        meta: { title: 'Detail SBM', parent: 'Master Data' }
+      },
+      {
+        path: 'master/sbm/:id/uang-harian',
+        name: 'SbmUangHarian',
+        component: SbmDetailView,
+        props: route => ({ id: route.params.id, activeTab: 'uang-harian' }),
+        meta: { title: 'SBM Uang Harian', parent: 'Master Data' }
+      },
+      {
+        path: 'master/sbm/:id/honorarium',
+        name: 'SbmHonorarium',
+        component: SbmDetailView,
+        props: route => ({ id: route.params.id, activeTab: 'honorarium' }),
+        meta: { title: 'SBM Honorarium', parent: 'Master Data' }
       },
 
       // Transaction Routes

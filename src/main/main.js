@@ -18,6 +18,7 @@ const SatkerApi = require('./api/satkerApi');
 const PegawaiApi = require('./api/pegawaiApi');
 const SupplierApi = require('./api/supplierApi');
 const DipaApi = require('./api/dipaApi');
+const SbmApi = require('./api/sbmApi');
 
 // Application state
 let mainWindow;
@@ -26,6 +27,7 @@ let satkerApi;
 let pegawaiApi;
 let supplierApi;
 let dipaApi;
+let sbmApi;
 
 // Prevent multiple instances
 const gotTheLock = app.requestSingleInstanceLock();
@@ -107,6 +109,7 @@ function initializeDatabase() {
     pegawaiApi = new PegawaiApi(database.db);
     supplierApi = new SupplierApi(database.db);
     dipaApi = new DipaApi(database.db);
+    sbmApi = new SbmApi(database.db);
 
     mainLogger.info('Database initialized successfully');
     return true;
