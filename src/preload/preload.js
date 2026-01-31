@@ -108,7 +108,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     deleteGeneratedDocument: (documentId) => ipcRenderer.invoke('document:deleteGeneratedDocument', documentId),
 
     // Storage
-    getStorageStats: () => ipcRenderer.invoke('document:getStorageStats')
+    getStorageStats: () => ipcRenderer.invoke('document:getStorageStats'),
+    openFolder: (requestId) => ipcRenderer.invoke('document:openFolder', requestId)
   },
 
   // ==================== Report API ====================
