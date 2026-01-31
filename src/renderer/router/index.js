@@ -16,7 +16,10 @@ const PegawaiListView = () => import('../views/master/PegawaiListView.vue');
 const PegawaiFormView = () => import('../views/master/PegawaiFormView.vue');
 const SupplierListView = () => import('../views/master/SupplierListView.vue');
 const SupplierFormView = () => import('../views/master/SupplierFormView.vue');
-const DipaView = () => import('../views/master/DipaView.vue');
+const DipaListView = () => import('../views/master/DipaListView.vue');
+const DipaDetailView = () => import('../views/master/DipaDetailView.vue');
+const DipaUploadView = () => import('../views/master/DipaUploadView.vue');
+const DipaItemBrowseView = () => import('../views/master/DipaItemBrowseView.vue');
 const SbmView = () => import('../views/master/SbmView.vue');
 
 // Transaction
@@ -98,8 +101,29 @@ const routes = [
       {
         path: 'master/dipa',
         name: 'MasterDipa',
-        component: DipaView,
+        component: DipaListView,
         meta: { title: 'Master DIPA', icon: 'file-text', parent: 'Master Data' }
+      },
+      {
+        path: 'master/dipa/:id',
+        name: 'DipaDetail',
+        component: DipaDetailView,
+        props: true,
+        meta: { title: 'Detail DIPA', parent: 'Master Data' }
+      },
+      {
+        path: 'master/dipa/:id/upload',
+        name: 'DipaUpload',
+        component: DipaUploadView,
+        props: true,
+        meta: { title: 'Upload Revisi DIPA', parent: 'Master Data' }
+      },
+      {
+        path: 'master/dipa/:id/browse',
+        name: 'DipaBrowse',
+        component: DipaItemBrowseView,
+        props: true,
+        meta: { title: 'Browse Anggaran', parent: 'Master Data' }
       },
       {
         path: 'master/sbm',

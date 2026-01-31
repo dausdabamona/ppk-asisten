@@ -55,6 +55,29 @@ contextBridge.exposeInMainWorld('electronAPI', {
     search: (params) => ipcRenderer.invoke('supplier:search', params)
   },
 
+  // ==================== DIPA API ====================
+  dipa: {
+    // DIPA CRUD
+    list: (params) => ipcRenderer.invoke('dipa:list', params),
+    get: (id) => ipcRenderer.invoke('dipa:get', id),
+    create: (data) => ipcRenderer.invoke('dipa:create', data),
+    update: (id, data) => ipcRenderer.invoke('dipa:update', { id, data }),
+
+    // Revisi
+    revisiList: (dipaId) => ipcRenderer.invoke('dipa:revisi:list', dipaId),
+    revisiUpload: (dipaId, data) => ipcRenderer.invoke('dipa:revisi:upload', { dipaId, data }),
+    revisiSetActive: (dipaId, revisiId) => ipcRenderer.invoke('dipa:revisi:set-active', { dipaId, revisiId }),
+    revisiDelete: (dipaId, revisiId) => ipcRenderer.invoke('dipa:revisi:delete', { dipaId, revisiId }),
+
+    // Items
+    itemsList: (params) => ipcRenderer.invoke('dipa:items:list', params),
+    itemsHierarki: (revisiId) => ipcRenderer.invoke('dipa:items:hierarki', revisiId),
+    itemsSisaPagu: (itemId) => ipcRenderer.invoke('dipa:items:sisa-pagu', itemId),
+
+    // CSV Parser
+    parseCSV: (csvContent) => ipcRenderer.invoke('dipa:parse-csv', csvContent)
+  },
+
   // ==================== Request API ====================
   request: {
     create: (data) => ipcRenderer.invoke('request:create', data),
@@ -255,4 +278,4 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
 // Log that preload is loaded
 console.log('Preload script loaded successfully');
-console.log('Available APIs: satker, pejabat, unitKerja, pegawai, supplier, request, vendor, contract, payment, document, report, user, db, app, dialog, window, log');
+console.log('Available APIs: satker, pejabat, unitKerja, pegawai, supplier, dipa, request, vendor, contract, payment, document, report, user, db, app, dialog, window, log');

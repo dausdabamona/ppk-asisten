@@ -17,6 +17,7 @@ const { createErrorResponse } = require('./utils/errorHandler');
 const SatkerApi = require('./api/satkerApi');
 const PegawaiApi = require('./api/pegawaiApi');
 const SupplierApi = require('./api/supplierApi');
+const DipaApi = require('./api/dipaApi');
 
 // Application state
 let mainWindow;
@@ -24,6 +25,7 @@ let database;
 let satkerApi;
 let pegawaiApi;
 let supplierApi;
+let dipaApi;
 
 // Prevent multiple instances
 const gotTheLock = app.requestSingleInstanceLock();
@@ -104,6 +106,7 @@ function initializeDatabase() {
     satkerApi = new SatkerApi(database.db);
     pegawaiApi = new PegawaiApi(database.db);
     supplierApi = new SupplierApi(database.db);
+    dipaApi = new DipaApi(database.db);
 
     mainLogger.info('Database initialized successfully');
     return true;
