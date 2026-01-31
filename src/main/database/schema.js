@@ -1,19 +1,305 @@
 /**
  * Database Schema Definition
- * Contains all SQL schema, indexes, and triggers for PPK Asisten
+ * Comprehensive schema for PPK Asisten - Politeknik Kelautan dan Perikanan Sorong
+ *
+ * Tables:
+ * - Master Data: satker, pejabat, unit_kerja, pegawai, supplier
+ * - DIPA: dipa, dipa_revisi, dipa_item
+ * - SBM: sbm_tahun, sbm_uang_harian, sbm_transport, sbm_honorarium
+ * - Legacy: users, vendors, procurement_requests, contracts, payments, etc.
  */
 
 // Database version for migrations
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 
-// Main schema SQL
-const SCHEMA_SQL = `
+// ==================== MASTER DATA TABLES ====================
+
+const SATKER_TABLE = `
+  CREATE TABLE IF NOT EXISTS satker (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kode_satker TEXT UNIQUE NOT NULL,
+    nama TEXT NOT NULL,
+    nama_singkat TEXT,
+    kode_kl TEXT,
+    nama_kl TEXT,
+    kode_eselon1 TEXT,
+    nama_eselon1 TEXT,
+    alamat TEXT,
+    kelurahan TEXT,
+    kecamatan TEXT,
+    kota TEXT,
+    provinsi TEXT,
+    kode_pos TEXT,
+    telepon TEXT,
+    fax TEXT,
+    email TEXT,
+    website TEXT,
+    npwp TEXT,
+    nama_wp TEXT,
+    bank_pengeluaran TEXT,
+    rekening_pengeluaran TEXT,
+    nama_rek_pengeluaran TEXT,
+    bank_penerimaan TEXT,
+    rekening_penerimaan TEXT,
+    nama_rek_penerimaan TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+`;
+
+const PEJABAT_TABLE = `
+  CREATE TABLE IF NOT EXISTS pejabat (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    satker_id INTEGER REFERENCES satker(id) ON DELETE CASCADE,
+    jenis TEXT NOT NULL CHECK(jenis IN ('KPA', 'PPK', 'PPSPM', 'BENDAHARA_PENGELUARAN', 'BENDAHARA_PENERIMAAN')),
+    nama TEXT NOT NULL,
+    nip TEXT,
+    nomor_sk TEXT,
+    tanggal_sk DATE,
+    is_active INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+`;
+
+const UNIT_KERJA_TABLE = `
+  CREATE TABLE IF NOT EXISTS unit_kerja (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    satker_id INTEGER REFERENCES satker(id) ON DELETE CASCADE,
+    kode TEXT,
+    nama TEXT NOT NULL,
+    is_active INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+`;
+
+const PEGAWAI_TABLE = `
+  CREATE TABLE IF NOT EXISTS pegawai (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nip TEXT UNIQUE,
+    nik TEXT,
+    nama TEXT NOT NULL,
+    gelar_depan TEXT,
+    gelar_belakang TEXT,
+    tempat_lahir TEXT,
+    tanggal_lahir DATE,
+    jenis_kelamin TEXT CHECK(jenis_kelamin IN ('L', 'P')),
+    alamat TEXT,
+    no_hp TEXT,
+    email TEXT,
+    npwp TEXT,
+    status_pegawai TEXT CHECK(status_pegawai IN ('ASN', 'PPPK', 'HONORER')),
+    pangkat TEXT,
+    golongan TEXT,
+    tmt_pangkat DATE,
+    jenis_jabatan TEXT,
+    nama_jabatan TEXT,
+    eselon TEXT,
+    unit_kerja_id INTEGER REFERENCES unit_kerja(id) ON DELETE SET NULL,
+    nama_bank TEXT,
+    nomor_rekening TEXT,
+    nama_rekening TEXT,
+    is_active INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+`;
+
+const SUPPLIER_TABLE = `
+  CREATE TABLE IF NOT EXISTS supplier (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    jenis TEXT NOT NULL CHECK(jenis IN ('BADAN_USAHA', 'PERORANGAN')),
+    nama TEXT NOT NULL,
+    bentuk_usaha TEXT CHECK(bentuk_usaha IN ('CV', 'PT', 'KOPERASI', 'UD', 'FIRMA', NULL)),
+    bidang_usaha TEXT,
+    alamat TEXT,
+    kota TEXT,
+    provinsi TEXT,
+    kode_pos TEXT,
+    telepon TEXT,
+    fax TEXT,
+    email TEXT,
+    website TEXT,
+    nib TEXT,
+    npwp TEXT,
+    nama_wp TEXT,
+    is_pkp INTEGER DEFAULT 0,
+    nomor_siup TEXT,
+    tanggal_siup DATE,
+    masa_berlaku_siup DATE,
+    nomor_akta_pendirian TEXT,
+    tanggal_akta_pendirian DATE,
+    notaris_akta_pendirian TEXT,
+    nomor_akta_perubahan TEXT,
+    tanggal_akta_perubahan DATE,
+    nama_direktur TEXT,
+    nik_direktur TEXT,
+    jabatan_direktur TEXT,
+    hp_direktur TEXT,
+    nama_cp TEXT,
+    jabatan_cp TEXT,
+    hp_cp TEXT,
+    email_cp TEXT,
+    nama_bank TEXT,
+    nomor_rekening TEXT,
+    nama_rekening TEXT,
+    kualifikasi_usaha TEXT CHECK(kualifikasi_usaha IN ('KECIL', 'NON_KECIL', NULL)),
+    bidang_pengadaan TEXT,
+    nik TEXT,
+    tempat_lahir TEXT,
+    tanggal_lahir DATE,
+    jenis_kelamin TEXT CHECK(jenis_kelamin IN ('L', 'P', NULL)),
+    status_pekerjaan TEXT CHECK(status_pekerjaan IN ('PNS', 'SWASTA', 'WIRASWASTA', 'PROFESIONAL', 'PENSIUNAN', NULL)),
+    instansi TEXT,
+    jabatan TEXT,
+    kota_instansi TEXT,
+    pendidikan_terakhir TEXT,
+    bidang_keahlian TEXT,
+    klasifikasi_honor TEXT,
+    total_kontrak INTEGER DEFAULT 0,
+    total_nilai REAL DEFAULT 0,
+    rating REAL DEFAULT 0,
+    status TEXT DEFAULT 'AKTIF' CHECK(status IN ('AKTIF', 'TIDAK_AKTIF', 'BLACKLIST')),
+    catatan TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+`;
+
+// ==================== DIPA TABLES ====================
+
+const DIPA_TABLE = `
+  CREATE TABLE IF NOT EXISTS dipa (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tahun_anggaran INTEGER NOT NULL,
+    nomor_dipa TEXT,
+    tanggal_dipa DATE,
+    kode_satker TEXT,
+    total_pagu REAL DEFAULT 0,
+    is_active INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(tahun_anggaran, kode_satker)
+  );
+`;
+
+const DIPA_REVISI_TABLE = `
+  CREATE TABLE IF NOT EXISTS dipa_revisi (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    dipa_id INTEGER REFERENCES dipa(id) ON DELETE CASCADE,
+    nomor_revisi INTEGER NOT NULL,
+    tanggal_revisi DATE,
+    jenis_revisi TEXT CHECK(jenis_revisi IN ('DIPA_AWAL', 'REVISI_POK', 'REVISI_ANGGARAN', 'REVISI_ADMINISTRASI')),
+    keterangan TEXT,
+    total_pagu REAL DEFAULT 0,
+    total_item INTEGER DEFAULT 0,
+    file_csv TEXT,
+    is_active INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(dipa_id, nomor_revisi)
+  );
+`;
+
+const DIPA_ITEM_TABLE = `
+  CREATE TABLE IF NOT EXISTS dipa_item (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    dipa_revisi_id INTEGER REFERENCES dipa_revisi(id) ON DELETE CASCADE,
+    kode_program TEXT,
+    kode_kegiatan TEXT,
+    kode_output TEXT,
+    kode_suboutput TEXT,
+    volume_output INTEGER,
+    volume_suboutput INTEGER,
+    kode_komponen TEXT,
+    kode_subkomponen TEXT,
+    uraian_subkomponen TEXT,
+    kode_akun TEXT NOT NULL,
+    kode_item TEXT,
+    nomor_item INTEGER,
+    uraian_item TEXT,
+    volume REAL,
+    satuan TEXT,
+    harga_satuan REAL,
+    total REAL,
+    kode_blokir TEXT,
+    nilai_blokir REAL DEFAULT 0,
+    pok_1 REAL DEFAULT 0,
+    pok_2 REAL DEFAULT 0,
+    pok_3 REAL DEFAULT 0,
+    pok_4 REAL DEFAULT 0,
+    pok_5 REAL DEFAULT 0,
+    pok_6 REAL DEFAULT 0,
+    pok_7 REAL DEFAULT 0,
+    pok_8 REAL DEFAULT 0,
+    pok_9 REAL DEFAULT 0,
+    pok_10 REAL DEFAULT 0,
+    pok_11 REAL DEFAULT 0,
+    pok_12 REAL DEFAULT 0,
+    realisasi REAL DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+`;
+
+// ==================== SBM TABLES ====================
+
+const SBM_TAHUN_TABLE = `
+  CREATE TABLE IF NOT EXISTS sbm_tahun (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tahun INTEGER UNIQUE NOT NULL,
+    nomor_pmk TEXT,
+    tanggal_pmk DATE,
+    is_active INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+`;
+
+const SBM_UANG_HARIAN_TABLE = `
+  CREATE TABLE IF NOT EXISTS sbm_uang_harian (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sbm_tahun_id INTEGER REFERENCES sbm_tahun(id) ON DELETE CASCADE,
+    provinsi TEXT NOT NULL,
+    kota TEXT NOT NULL,
+    tingkat TEXT CHECK(tingkat IN ('A', 'B', 'C')),
+    uang_harian REAL,
+    penginapan REAL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+`;
+
+const SBM_TRANSPORT_TABLE = `
+  CREATE TABLE IF NOT EXISTS sbm_transport (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sbm_tahun_id INTEGER REFERENCES sbm_tahun(id) ON DELETE CASCADE,
+    asal TEXT,
+    tujuan TEXT,
+    moda TEXT,
+    kelas TEXT,
+    tarif REAL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+`;
+
+const SBM_HONORARIUM_TABLE = `
+  CREATE TABLE IF NOT EXISTS sbm_honorarium (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sbm_tahun_id INTEGER REFERENCES sbm_tahun(id) ON DELETE CASCADE,
+    kategori TEXT CHECK(kategori IN ('NARASUMBER', 'MODERATOR', 'PJLP')),
+    kualifikasi TEXT,
+    satuan TEXT,
+    tarif REAL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+`;
+
+// ==================== LEGACY TABLES (from previous schema) ====================
+
+const LEGACY_TABLES = `
   -- Schema version tracking
   CREATE TABLE IF NOT EXISTS schema_migrations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     version INTEGER NOT NULL UNIQUE,
     name TEXT NOT NULL,
-    applied_at TEXT DEFAULT (datetime('now', 'localtime'))
+    applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
   -- Users table
@@ -25,11 +311,11 @@ const SCHEMA_SQL = `
     role TEXT NOT NULL CHECK(role IN ('admin', 'ppk', 'ppspm', 'unit_head', 'operator')),
     unit TEXT,
     active INTEGER DEFAULT 1,
-    created_at TEXT DEFAULT (datetime('now', 'localtime')),
-    updated_at TEXT DEFAULT (datetime('now', 'localtime'))
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
-  -- Vendors table
+  -- Vendors table (kept for backward compatibility)
   CREATE TABLE IF NOT EXISTS vendors (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -43,8 +329,8 @@ const SCHEMA_SQL = `
     performance_rating REAL DEFAULT 0 CHECK(performance_rating >= 0 AND performance_rating <= 5),
     is_active INTEGER DEFAULT 1,
     notes TEXT,
-    created_at TEXT DEFAULT (datetime('now', 'localtime')),
-    updated_at TEXT DEFAULT (datetime('now', 'localtime'))
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
   -- Procurement requests
@@ -66,8 +352,8 @@ const SCHEMA_SQL = `
     urgency TEXT DEFAULT 'normal' CHECK(urgency IN ('normal', 'urgent', 'very_urgent')),
     target_date TEXT,
     rejection_reason TEXT,
-    created_at TEXT DEFAULT (datetime('now', 'localtime')),
-    updated_at TEXT DEFAULT (datetime('now', 'localtime')),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (requester_id) REFERENCES users(id) ON DELETE RESTRICT
   );
 
@@ -86,8 +372,8 @@ const SCHEMA_SQL = `
     signed_date TEXT,
     signed_by TEXT,
     notes TEXT,
-    created_at TEXT DEFAULT (datetime('now', 'localtime')),
-    updated_at TEXT DEFAULT (datetime('now', 'localtime')),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (request_id) REFERENCES procurement_requests(id) ON DELETE CASCADE,
     FOREIGN KEY (vendor_id) REFERENCES vendors(id) ON DELETE RESTRICT,
     FOREIGN KEY (signed_by) REFERENCES users(id) ON DELETE SET NULL
@@ -106,8 +392,8 @@ const SCHEMA_SQL = `
     reference_number TEXT,
     processed_by TEXT,
     notes TEXT,
-    created_at TEXT DEFAULT (datetime('now', 'localtime')),
-    updated_at TEXT DEFAULT (datetime('now', 'localtime')),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE,
     FOREIGN KEY (processed_by) REFERENCES users(id) ON DELETE SET NULL,
     UNIQUE(contract_id, payment_number)
@@ -126,16 +412,11 @@ const SCHEMA_SQL = `
     file_size INTEGER,
     mime_type TEXT,
     uploaded_by TEXT NOT NULL,
-    uploaded_at TEXT DEFAULT (datetime('now', 'localtime')),
+    uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (request_id) REFERENCES procurement_requests(id) ON DELETE CASCADE,
     FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE,
     FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE,
-    FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE RESTRICT,
-    CHECK (
-      (request_id IS NOT NULL AND contract_id IS NULL AND payment_id IS NULL) OR
-      (request_id IS NULL AND contract_id IS NOT NULL AND payment_id IS NULL) OR
-      (request_id IS NULL AND contract_id IS NULL AND payment_id IS NOT NULL)
-    )
+    FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE RESTRICT
   );
 
   -- Generated documents table
@@ -147,7 +428,7 @@ const SCHEMA_SQL = `
     doc_number TEXT NOT NULL,
     file_path TEXT NOT NULL,
     file_size INTEGER,
-    created_at TEXT DEFAULT (datetime('now', 'localtime')),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (request_id) REFERENCES procurement_requests(id) ON DELETE CASCADE,
     FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE
   );
@@ -162,7 +443,7 @@ const SCHEMA_SQL = `
     action TEXT CHECK(action IN ('approve', 'reject', 'revise', 'pending')),
     comments TEXT,
     approved_at TEXT,
-    created_at TEXT DEFAULT (datetime('now', 'localtime')),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (request_id) REFERENCES procurement_requests(id) ON DELETE CASCADE,
     FOREIGN KEY (approver_id) REFERENCES users(id) ON DELETE SET NULL,
     UNIQUE(request_id, step_number)
@@ -177,8 +458,8 @@ const SCHEMA_SQL = `
     used_amount REAL DEFAULT 0 CHECK(used_amount >= 0),
     reserved_amount REAL DEFAULT 0 CHECK(reserved_amount >= 0),
     fiscal_year INTEGER NOT NULL,
-    created_at TEXT DEFAULT (datetime('now', 'localtime')),
-    updated_at TEXT DEFAULT (datetime('now', 'localtime')),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     CHECK(used_amount + reserved_amount <= total_allocation)
   );
 
@@ -191,7 +472,7 @@ const SCHEMA_SQL = `
     old_values TEXT,
     new_values TEXT,
     changed_by TEXT,
-    changed_at TEXT DEFAULT (datetime('now', 'localtime')),
+    changed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     ip_address TEXT
   );
 
@@ -202,14 +483,37 @@ const SCHEMA_SQL = `
     backup_size INTEGER,
     backup_type TEXT DEFAULT 'manual' CHECK(backup_type IN ('manual', 'scheduled', 'pre_migration')),
     status TEXT DEFAULT 'completed' CHECK(status IN ('completed', 'failed', 'deleted')),
-    created_at TEXT DEFAULT (datetime('now', 'localtime')),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     notes TEXT
   );
 `;
 
-// Indexes SQL
+// ==================== INDEXES ====================
+
 const INDEXES_SQL = `
-  -- Indexes for performance
+  -- Master data indexes
+  CREATE INDEX IF NOT EXISTS idx_pejabat_satker ON pejabat(satker_id);
+  CREATE INDEX IF NOT EXISTS idx_pejabat_jenis ON pejabat(jenis);
+  CREATE INDEX IF NOT EXISTS idx_unit_kerja_satker ON unit_kerja(satker_id);
+  CREATE INDEX IF NOT EXISTS idx_pegawai_unit ON pegawai(unit_kerja_id);
+  CREATE INDEX IF NOT EXISTS idx_pegawai_nip ON pegawai(nip);
+  CREATE INDEX IF NOT EXISTS idx_supplier_jenis ON supplier(jenis);
+  CREATE INDEX IF NOT EXISTS idx_supplier_status ON supplier(status);
+  CREATE INDEX IF NOT EXISTS idx_supplier_npwp ON supplier(npwp);
+
+  -- DIPA indexes
+  CREATE INDEX IF NOT EXISTS idx_dipa_tahun ON dipa(tahun_anggaran);
+  CREATE INDEX IF NOT EXISTS idx_dipa_revisi_dipa ON dipa_revisi(dipa_id);
+  CREATE INDEX IF NOT EXISTS idx_dipa_item_revisi ON dipa_item(dipa_revisi_id);
+  CREATE INDEX IF NOT EXISTS idx_dipa_item_akun ON dipa_item(kode_akun);
+  CREATE INDEX IF NOT EXISTS idx_dipa_item_program ON dipa_item(kode_program, kode_kegiatan, kode_output);
+
+  -- SBM indexes
+  CREATE INDEX IF NOT EXISTS idx_sbm_uang_harian_tahun ON sbm_uang_harian(sbm_tahun_id);
+  CREATE INDEX IF NOT EXISTS idx_sbm_transport_tahun ON sbm_transport(sbm_tahun_id);
+  CREATE INDEX IF NOT EXISTS idx_sbm_honorarium_tahun ON sbm_honorarium(sbm_tahun_id);
+
+  -- Legacy indexes
   CREATE INDEX IF NOT EXISTS idx_requests_status ON procurement_requests(status);
   CREATE INDEX IF NOT EXISTS idx_requests_tier ON procurement_requests(tier);
   CREATE INDEX IF NOT EXISTS idx_requests_requester ON procurement_requests(requester_id);
@@ -247,8 +551,44 @@ const INDEXES_SQL = `
   CREATE INDEX IF NOT EXISTS idx_audit_date ON audit_log(changed_at);
 `;
 
-// Triggers SQL
+// ==================== TRIGGERS ====================
+
 const TRIGGERS_SQL = `
+  -- Auto-update updated_at for satker
+  CREATE TRIGGER IF NOT EXISTS update_satker_timestamp
+  AFTER UPDATE ON satker
+  BEGIN
+    UPDATE satker SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+  END;
+
+  -- Auto-update updated_at for pejabat
+  CREATE TRIGGER IF NOT EXISTS update_pejabat_timestamp
+  AFTER UPDATE ON pejabat
+  BEGIN
+    UPDATE pejabat SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+  END;
+
+  -- Auto-update updated_at for pegawai
+  CREATE TRIGGER IF NOT EXISTS update_pegawai_timestamp
+  AFTER UPDATE ON pegawai
+  BEGIN
+    UPDATE pegawai SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+  END;
+
+  -- Auto-update updated_at for supplier
+  CREATE TRIGGER IF NOT EXISTS update_supplier_timestamp
+  AFTER UPDATE ON supplier
+  BEGIN
+    UPDATE supplier SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+  END;
+
+  -- Auto-update updated_at for dipa
+  CREATE TRIGGER IF NOT EXISTS update_dipa_timestamp
+  AFTER UPDATE ON dipa
+  BEGIN
+    UPDATE dipa SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+  END;
+
   -- Trigger: Validate tier1 request value (< 10 million)
   CREATE TRIGGER IF NOT EXISTS validate_tier1_value
   BEFORE INSERT ON procurement_requests
@@ -273,25 +613,9 @@ const TRIGGERS_SQL = `
     SELECT RAISE(ABORT, 'Tier 3 requests must have estimated_value >= 50,000,000');
   END;
 
-  -- Trigger: Update tier1 validation on update
-  CREATE TRIGGER IF NOT EXISTS validate_tier1_value_update
-  BEFORE UPDATE ON procurement_requests
-  WHEN NEW.tier = 'tier1' AND NEW.estimated_value >= 10000000
-  BEGIN
-    SELECT RAISE(ABORT, 'Tier 1 requests must have estimated_value < 10,000,000');
-  END;
-
   -- Trigger: Validate contract dates
   CREATE TRIGGER IF NOT EXISTS validate_contract_dates
   BEFORE INSERT ON contracts
-  WHEN NEW.end_date < NEW.start_date
-  BEGIN
-    SELECT RAISE(ABORT, 'Contract end_date must be after start_date');
-  END;
-
-  -- Trigger: Validate contract dates on update
-  CREATE TRIGGER IF NOT EXISTS validate_contract_dates_update
-  BEFORE UPDATE ON contracts
   WHEN NEW.end_date < NEW.start_date
   BEGIN
     SELECT RAISE(ABORT, 'Contract end_date must be after start_date');
@@ -312,108 +636,98 @@ const TRIGGERS_SQL = `
       THEN RAISE(ABORT, 'Total payments cannot exceed contract value')
     END;
   END;
-
-  -- Trigger: Update request status when all approvals complete
-  CREATE TRIGGER IF NOT EXISTS update_request_on_approval
-  AFTER UPDATE ON workflow_approvals
-  WHEN NEW.action = 'approve'
-  BEGIN
-    UPDATE procurement_requests
-    SET status = 'approved',
-        updated_at = datetime('now', 'localtime')
-    WHERE id = NEW.request_id
-    AND NOT EXISTS (
-      SELECT 1 FROM workflow_approvals
-      WHERE request_id = NEW.request_id
-      AND (action IS NULL OR action = 'pending')
-    );
-  END;
-
-  -- Trigger: Update request status on rejection
-  CREATE TRIGGER IF NOT EXISTS update_request_on_rejection
-  AFTER UPDATE ON workflow_approvals
-  WHEN NEW.action = 'reject'
-  BEGIN
-    UPDATE procurement_requests
-    SET status = 'rejected',
-        updated_at = datetime('now', 'localtime')
-    WHERE id = NEW.request_id;
-  END;
-
-  -- Trigger: Auto-update updated_at timestamp for requests
-  CREATE TRIGGER IF NOT EXISTS update_request_timestamp
-  AFTER UPDATE ON procurement_requests
-  BEGIN
-    UPDATE procurement_requests
-    SET updated_at = datetime('now', 'localtime')
-    WHERE id = NEW.id AND updated_at = OLD.updated_at;
-  END;
-
-  -- Trigger: Auto-update updated_at timestamp for vendors
-  CREATE TRIGGER IF NOT EXISTS update_vendor_timestamp
-  AFTER UPDATE ON vendors
-  BEGIN
-    UPDATE vendors
-    SET updated_at = datetime('now', 'localtime')
-    WHERE id = NEW.id AND updated_at = OLD.updated_at;
-  END;
-
-  -- Trigger: Auto-update updated_at timestamp for contracts
-  CREATE TRIGGER IF NOT EXISTS update_contract_timestamp
-  AFTER UPDATE ON contracts
-  BEGIN
-    UPDATE contracts
-    SET updated_at = datetime('now', 'localtime')
-    WHERE id = NEW.id AND updated_at = OLD.updated_at;
-  END;
-
-  -- Trigger: Validate vendor rating range
-  CREATE TRIGGER IF NOT EXISTS validate_vendor_rating
-  BEFORE UPDATE ON vendors
-  WHEN NEW.performance_rating < 0 OR NEW.performance_rating > 5
-  BEGIN
-    SELECT RAISE(ABORT, 'Vendor performance_rating must be between 0 and 5');
-  END;
-
-  -- Trigger: Prevent deletion of vendors with active contracts
-  CREATE TRIGGER IF NOT EXISTS prevent_vendor_delete
-  BEFORE DELETE ON vendors
-  WHEN EXISTS (SELECT 1 FROM contracts WHERE vendor_id = OLD.id AND status IN ('draft', 'active'))
-  BEGIN
-    SELECT RAISE(ABORT, 'Cannot delete vendor with active or draft contracts');
-  END;
-
-  -- Trigger: Validate NPWP format (15 digits)
-  CREATE TRIGGER IF NOT EXISTS validate_npwp_format
-  BEFORE INSERT ON vendors
-  WHEN NEW.npwp IS NOT NULL AND LENGTH(REPLACE(REPLACE(NEW.npwp, '.', ''), '-', '')) != 15
-  BEGIN
-    SELECT RAISE(ABORT, 'NPWP must be 15 digits');
-  END;
 `;
 
-// Initial seed data
+// ==================== SEED DATA ====================
+
 const SEED_DATA = {
+  // Politeknik Kelautan dan Perikanan Sorong
+  satker: {
+    kode_satker: '660521',
+    nama: 'Politeknik Kelautan dan Perikanan Sorong',
+    nama_singkat: 'PKP Sorong',
+    kode_kl: '032',
+    nama_kl: 'Kementerian Kelautan dan Perikanan',
+    kode_eselon1: '11',
+    nama_eselon1: 'Badan Riset dan Sumber Daya Manusia Kelautan dan Perikanan',
+    alamat: 'Jl. Kapitan Pattimura, Tanjung Kasuari',
+    kelurahan: 'Tanjung Kasuari',
+    kecamatan: 'Sorong Manoi',
+    kota: 'Kota Sorong',
+    provinsi: 'Papua Barat Daya',
+    kode_pos: '98417',
+    telepon: '(0951) 321234',
+    email: 'poltek.sorong@kkp.go.id',
+    website: 'https://polsorong.ac.id'
+  },
+
+  // Unit kerja
+  unitKerja: [
+    { kode: 'TU', nama: 'Bagian Tata Usaha' },
+    { kode: 'AK', nama: 'Bagian Akademik' },
+    { kode: 'KM', nama: 'Bagian Kemahasiswaan' },
+    { kode: 'KU', nama: 'Bagian Keuangan' },
+    { kode: 'UM', nama: 'Bagian Umum' },
+    { kode: 'PRODI-TPI', nama: 'Program Studi Teknologi Penangkapan Ikan' },
+    { kode: 'PRODI-THP', nama: 'Program Studi Teknologi Hasil Perikanan' },
+    { kode: 'PRODI-TBP', nama: 'Program Studi Teknologi Budidaya Perikanan' }
+  ],
+
+  // Default admin user
+  defaultAdmin: {
+    email: 'admin@pkpsorong.ac.id',
+    password: 'admin123',
+    name: 'Administrator',
+    role: 'admin',
+    unit: 'TU'
+  },
+
+  // Budget codes
   budgetCodes: [
     { code: '5211', name: 'Belanja Barang Operasional', amount: 500000000 },
     { code: '5212', name: 'Belanja Barang Non Operasional', amount: 300000000 },
     { code: '5221', name: 'Belanja Jasa', amount: 200000000 },
     { code: '5231', name: 'Belanja Pemeliharaan', amount: 150000000 },
     { code: '5311', name: 'Belanja Modal Peralatan', amount: 400000000 }
-  ],
-  defaultAdmin: {
-    email: 'admin@pkpsorong.ac.id',
-    password: 'admin123', // In production, use bcrypt hash
-    name: 'Administrator',
-    role: 'admin',
-    unit: 'TU'
-  }
+  ]
 };
+
+// Combine all schema SQL
+const SCHEMA_SQL = [
+  SATKER_TABLE,
+  PEJABAT_TABLE,
+  UNIT_KERJA_TABLE,
+  PEGAWAI_TABLE,
+  SUPPLIER_TABLE,
+  DIPA_TABLE,
+  DIPA_REVISI_TABLE,
+  DIPA_ITEM_TABLE,
+  SBM_TAHUN_TABLE,
+  SBM_UANG_HARIAN_TABLE,
+  SBM_TRANSPORT_TABLE,
+  SBM_HONORARIUM_TABLE,
+  LEGACY_TABLES
+].join('\n');
 
 module.exports = {
   DB_VERSION,
   SCHEMA_SQL,
   INDEXES_SQL,
   TRIGGERS_SQL,
-  SEED_DATA
+  SEED_DATA,
+  // Export individual table definitions for reference
+  tables: {
+    SATKER_TABLE,
+    PEJABAT_TABLE,
+    UNIT_KERJA_TABLE,
+    PEGAWAI_TABLE,
+    SUPPLIER_TABLE,
+    DIPA_TABLE,
+    DIPA_REVISI_TABLE,
+    DIPA_ITEM_TABLE,
+    SBM_TAHUN_TABLE,
+    SBM_UANG_HARIAN_TABLE,
+    SBM_TRANSPORT_TABLE,
+    SBM_HONORARIUM_TABLE
+  }
 };

@@ -142,10 +142,47 @@ class DatabaseConnection {
   }
 
   _seedInitialData() {
+    // Check if satker data exists
+    const satkerCount = this.db.prepare('SELECT COUNT(*) as count FROM satker').get();
+
+    if (satkerCount.count === 0) {
+      console.log('Seeding satker data...');
+
+      // Insert Poltek Sorong satker
+      const satker = SEED_DATA.satker;
+      this.db.prepare(`
+        INSERT INTO satker (
+          kode_satker, nama, nama_singkat, kode_kl, nama_kl,
+          kode_eselon1, nama_eselon1, alamat, kelurahan, kecamatan,
+          kota, provinsi, kode_pos, telepon, email, website
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        satker.kode_satker, satker.nama, satker.nama_singkat, satker.kode_kl, satker.nama_kl,
+        satker.kode_eselon1, satker.nama_eselon1, satker.alamat, satker.kelurahan, satker.kecamatan,
+        satker.kota, satker.provinsi, satker.kode_pos, satker.telepon, satker.email, satker.website
+      );
+
+      // Get satker ID for unit_kerja
+      const satkerId = this.db.prepare('SELECT id FROM satker WHERE kode_satker = ?').get(satker.kode_satker).id;
+
+      // Insert unit kerja
+      const unitStmt = this.db.prepare(`
+        INSERT INTO unit_kerja (satker_id, kode, nama)
+        VALUES (?, ?, ?)
+      `);
+
+      for (const unit of SEED_DATA.unitKerja) {
+        unitStmt.run(satkerId, unit.kode, unit.nama);
+      }
+
+      console.log('Satker and unit kerja seeded');
+    }
+
+    // Check if user data exists
     const userCount = this.db.prepare('SELECT COUNT(*) as count FROM users').get();
 
     if (userCount.count === 0) {
-      console.log('Seeding initial data...');
+      console.log('Seeding user data...');
 
       // Create default admin user
       const adminId = uuidv4();
@@ -177,7 +214,7 @@ class DatabaseConnection {
         );
       }
 
-      console.log('Initial data seeded');
+      console.log('User and budget data seeded');
     }
   }
 
