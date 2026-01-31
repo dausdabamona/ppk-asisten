@@ -23,12 +23,19 @@
             >
               Tier 1
             </button>
-            <button 
+            <button
               @click="currentView = 'tier2'"
               :class="['hover:text-primary-100 transition-colors',
                        currentView === 'tier2' ? 'font-bold' : '']"
             >
               Tier 2
+            </button>
+            <button
+              @click="currentView = 'tier3'"
+              :class="['hover:text-primary-100 transition-colors',
+                       currentView === 'tier3' ? 'font-bold' : '']"
+            >
+              Tier 3
             </button>
           </nav>
         </div>
@@ -226,12 +233,22 @@
           <p class="text-gray-500">Coming soon...</p>
         </div>
       </div>
+
+      <!-- Tier 3 View -->
+      <div v-else-if="currentView === 'tier3'">
+        <Tier3Form
+          @submit="handleTier3Submit"
+          @save-draft="handleTier3SaveDraft"
+          @cancel="currentView = 'dashboard'"
+        />
+      </div>
     </main>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import Tier3Form from './components/Tier3Form.vue'
 
 const appVersion = ref('1.0.0')
 const currentView = ref('dashboard')
@@ -332,6 +349,47 @@ function getStatusClass(status) {
     completed: 'px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800'
   }
   return classes[status] || classes.draft
+}
+
+// Tier 3 handlers
+async function handleTier3Submit(formData) {
+  try {
+    const result = await window.electronAPI.request.create({
+      ...formData,
+      tier: 'tier3',
+      status: 'pending'
+    })
+
+    if (result.success) {
+      alert(`Pengajuan Tier 3 berhasil dibuat!\nNomor: ${result.data.request_number}`)
+      await loadRequests()
+      currentView.value = 'dashboard'
+    } else {
+      alert('Error: ' + (result.error?.message || result.error))
+    }
+  } catch (error) {
+    console.error('Tier 3 submit error:', error)
+    alert('Gagal menyimpan pengajuan: ' + error.message)
+  }
+}
+
+async function handleTier3SaveDraft(formData) {
+  try {
+    const result = await window.electronAPI.request.create({
+      ...formData,
+      tier: 'tier3',
+      status: 'draft'
+    })
+
+    if (result.success) {
+      alert('Draft tersimpan!')
+    } else {
+      alert('Error: ' + (result.error?.message || result.error))
+    }
+  } catch (error) {
+    console.error('Tier 3 save draft error:', error)
+    alert('Gagal menyimpan draft: ' + error.message)
+  }
 }
 
 // Lifecycle
