@@ -95,7 +95,7 @@ const routes = {
   'payment:getUpcoming': (daysAhead) => paymentApi.getUpcoming(daysAhead),
   'payment:getContractStats': (contractId) => paymentApi.getContractPaymentStats(contractId),
 
-  // Document routes
+  // Document routes - Attachment management
   'document:create': (data) => documentApi.create(data),
   'document:getAll': (filters) => documentApi.getAll(filters),
   'document:getByRequest': (requestId) => documentApi.getByRequest(requestId),
@@ -103,9 +103,27 @@ const routes = {
   'document:getByPayment': (paymentId) => documentApi.getByPayment(paymentId),
   'document:delete': (id) => documentApi.delete(id),
   'document:saveFile': ({ fileData, fileName, options }) => documentApi.saveFile(fileData, fileName, options),
+
+  // Document routes - Basic PDF generation
   'document:generateRequestPdf': (requestId) => documentApi.generateRequestPdf(requestId),
   'document:generateContractPdf': (contractId) => documentApi.generateContractPdf(contractId),
   'document:generatePaymentVoucherPdf': (paymentId) => documentApi.generatePaymentVoucherPdf(paymentId),
+
+  // Document routes - Professional document generation
+  'document:generateKwitansi': ({ requestId, options }) => documentApi.generateKwitansi(requestId, options),
+  'document:generateSPP': ({ requestId, options }) => documentApi.generateSPP(requestId, options),
+  'document:generateSPM': ({ requestId, options }) => documentApi.generateSPM(requestId, options),
+  'document:generateContractDoc': ({ contractId, options }) => documentApi.generateContractDoc(contractId, options),
+  'document:generateBAST': ({ contractId, options }) => documentApi.generateBAST(contractId, options),
+
+  // Document routes - Batch generation
+  'document:generateBatch': (items) => documentApi.generateBatch(items),
+
+  // Document routes - Generated document management
+  'document:getGeneratedDocuments': (requestId) => documentApi.getGeneratedDocuments(requestId),
+  'document:deleteGeneratedDocument': (documentId) => documentApi.deleteGeneratedDocument(documentId),
+
+  // Document routes - Storage
   'document:getStorageStats': () => documentApi.getStorageStats(),
 
   // Report routes

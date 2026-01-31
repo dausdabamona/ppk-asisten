@@ -1,7 +1,7 @@
 /**
  * Document API - Document Management and Generation
  *
- * Handles file attachments and document generation (PDF)
+ * Handles file attachments and professional PDF document generation
  */
 
 const BaseApi = require('./baseApi');
@@ -10,6 +10,7 @@ const { FileError, BusinessError, ERROR_CODES } = require('../utils/errorHandler
 const path = require('path');
 const fs = require('fs');
 const { app } = require('electron');
+const DocumentGenerator = require('../services/documentGenerator');
 
 // Allowed file types
 const ALLOWED_MIME_TYPES = {
@@ -34,6 +35,19 @@ class DocumentApi extends BaseApi {
 
     // Document storage path
     this.documentsPath = null;
+
+    // Document generator (initialized lazily)
+    this._documentGenerator = null;
+  }
+
+  /**
+   * Get or create document generator instance
+   */
+  get documentGenerator() {
+    if (!this._documentGenerator && this.db) {
+      this._documentGenerator = new DocumentGenerator(this.db);
+    }
+    return this._documentGenerator;
   }
 
   /**
@@ -553,6 +567,275 @@ class DocumentApi extends BaseApi {
 
       return stats;
     }, { action: 'getStorageStats' });
+  }
+
+  // ==================== Professional Document Generation ====================
+
+  /**
+   * Generate Kwitansi (Official Receipt)
+   * @param {string} requestId - Request ID
+   * @param {object} options - Additional options
+   */
+  generateKwitansi(requestId, options = {}) {
+    return this.execute(async () => {
+      const request = this.db.getRequestWithDetails(requestId);
+      if (!request) {
+        throw new BusinessError(
+          ERROR_CODES.DB_NOT_FOUND,
+          'Request not found',
+          { requestId }
+        );
+      }
+
+      const requestData = {
+        ...request,
+        ...options,
+        id: requestId,
+        sequence: options.sequence || await this._getNextSequence('kwitansi')
+      };
+
+      return this.documentGenerator.generateKwitansi(requestData);
+    }, { action: 'generateKwitansi', requestId });
+  }
+
+  /**
+   * Generate SPP (Surat Permintaan Pembayaran)
+   * @param {string} requestId - Request ID
+   * @param {object} options - Additional options
+   */
+  generateSPP(requestId, options = {}) {
+    return this.execute(async () => {
+      const request = this.db.getRequestWithDetails(requestId);
+      if (!request) {
+        throw new BusinessError(
+          ERROR_CODES.DB_NOT_FOUND,
+          'Request not found',
+          { requestId }
+        );
+      }
+
+      const requestData = {
+        ...request,
+        ...options,
+        id: requestId,
+        sequence: options.sequence || await this._getNextSequence('spp')
+      };
+
+      return this.documentGenerator.generateSPP(requestData);
+    }, { action: 'generateSPP', requestId });
+  }
+
+  /**
+   * Generate SPM (Surat Perintah Membayar)
+   * @param {string} requestId - Request ID
+   * @param {object} options - Additional options (bank details, tax info)
+   */
+  generateSPM(requestId, options = {}) {
+    return this.execute(async () => {
+      const request = this.db.getRequestWithDetails(requestId);
+      if (!request) {
+        throw new BusinessError(
+          ERROR_CODES.DB_NOT_FOUND,
+          'Request not found',
+          { requestId }
+        );
+      }
+
+      // Get related contract and vendor if available
+      let contract = null;
+      let vendor = null;
+
+      try {
+        const contracts = this.db.prepare(`
+          SELECT * FROM contracts WHERE request_id = ? ORDER BY created_at DESC LIMIT 1
+        `).all(requestId);
+
+        if (contracts.length > 0) {
+          contract = contracts[0];
+          vendor = this.db.getVendorById(contract.vendor_id);
+        }
+      } catch (e) {
+        // Contract might not exist
+      }
+
+      const requestData = {
+        ...request,
+        ...options,
+        id: requestId,
+        sequence: options.sequence || await this._getNextSequence('spm'),
+        vendor_name: vendor?.name || options.vendor_name,
+        bank_name: vendor?.bank_name || options.bank_name,
+        bank_account: vendor?.bank_account || options.bank_account,
+        bank_account_name: vendor?.bank_account_name || options.bank_account_name
+      };
+
+      return this.documentGenerator.generateSPM(requestData);
+    }, { action: 'generateSPM', requestId });
+  }
+
+  /**
+   * Generate Contract document
+   * @param {string} contractId - Contract ID
+   * @param {object} options - Additional options
+   */
+  generateContractDoc(contractId, options = {}) {
+    return this.execute(async () => {
+      const contract = this.db.getContractById(contractId);
+      if (!contract) {
+        throw new BusinessError(
+          ERROR_CODES.DB_NOT_FOUND,
+          'Contract not found',
+          { contractId }
+        );
+      }
+
+      const vendor = this.db.getVendorById(contract.vendor_id);
+      const request = contract.request_id
+        ? this.db.getRequestWithDetails(contract.request_id)
+        : null;
+
+      const contractData = {
+        ...contract,
+        ...options,
+        vendor_name: vendor?.name,
+        vendor_npwp: vendor?.npwp,
+        vendor_address: vendor?.address,
+        vendor_contact_person: options.vendor_contact_person || vendor?.name,
+        vendor_position: options.vendor_position || 'Direktur',
+        item_name: request?.item_name || contract.notes,
+        tier: request?.tier || options.tier || 'tier2'
+      };
+
+      return this.documentGenerator.generateContract(contractData, contractData.tier);
+    }, { action: 'generateContractDoc', contractId });
+  }
+
+  /**
+   * Generate BAST (Berita Acara Serah Terima)
+   * @param {string} contractId - Contract ID
+   * @param {object} options - Additional options (inspection result, items)
+   */
+  generateBAST(contractId, options = {}) {
+    return this.execute(async () => {
+      const contract = this.db.getContractById(contractId);
+      if (!contract) {
+        throw new BusinessError(
+          ERROR_CODES.DB_NOT_FOUND,
+          'Contract not found',
+          { contractId }
+        );
+      }
+
+      const vendor = this.db.getVendorById(contract.vendor_id);
+      const request = contract.request_id
+        ? this.db.getRequestWithDetails(contract.request_id)
+        : null;
+
+      const contractData = {
+        ...contract,
+        ...options,
+        request_id: contract.request_id,
+        vendor_name: vendor?.name,
+        vendor_contact_person: options.vendor_contact_person || vendor?.name,
+        vendor_position: options.vendor_position || 'Direktur',
+        item_name: request?.item_name || contract.notes,
+        contract_date: contract.signed_date || contract.start_date,
+        sequence: options.sequence || await this._getNextSequence('bast')
+      };
+
+      return this.documentGenerator.generateBAST(contractData);
+    }, { action: 'generateBAST', contractId });
+  }
+
+  /**
+   * Generate multiple documents in batch
+   * @param {array} items - Array of { id, type } objects
+   * @param {function} progressCallback - Progress callback
+   */
+  generateBatch(items, progressCallback = null) {
+    return this.execute(async () => {
+      const results = [];
+
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        let result;
+
+        try {
+          switch (item.type) {
+            case 'kwitansi':
+              result = await this.generateKwitansi(item.id, item.options || {});
+              break;
+            case 'spp':
+              result = await this.generateSPP(item.id, item.options || {});
+              break;
+            case 'spm':
+              result = await this.generateSPM(item.id, item.options || {});
+              break;
+            case 'contract':
+              result = await this.generateContractDoc(item.id, item.options || {});
+              break;
+            case 'bast':
+              result = await this.generateBAST(item.id, item.options || {});
+              break;
+            default:
+              throw new Error(`Unknown document type: ${item.type}`);
+          }
+
+          results.push({ success: true, id: item.id, type: item.type, ...result });
+        } catch (error) {
+          results.push({ success: false, id: item.id, type: item.type, error: error.message });
+        }
+
+        if (progressCallback) {
+          progressCallback({
+            completed: i + 1,
+            total: items.length,
+            percentage: Math.round(((i + 1) / items.length) * 100),
+            current: item
+          });
+        }
+      }
+
+      return results;
+    }, { action: 'generateBatch', count: items.length });
+  }
+
+  /**
+   * Get generated documents for a request
+   * @param {string} requestId - Request ID
+   */
+  getGeneratedDocuments(requestId) {
+    return this.execute(() => {
+      return this.documentGenerator.getDocuments(requestId);
+    }, { action: 'getGeneratedDocuments', requestId });
+  }
+
+  /**
+   * Delete a generated document
+   * @param {string} documentId - Document ID
+   */
+  deleteGeneratedDocument(documentId) {
+    return this.execute(() => {
+      return this.documentGenerator.deleteDocument(documentId);
+    }, { action: 'deleteGeneratedDocument', documentId });
+  }
+
+  /**
+   * Get next sequence number for document type
+   * @private
+   */
+  async _getNextSequence(docType) {
+    try {
+      const year = new Date().getFullYear();
+      const result = this.db.prepare(`
+        SELECT COUNT(*) as count FROM documents
+        WHERE doc_type = ? AND strftime('%Y', created_at) = ?
+      `).get(docType, year.toString());
+
+      return (result?.count || 0) + 1;
+    } catch (e) {
+      return 1;
+    }
   }
 }
 

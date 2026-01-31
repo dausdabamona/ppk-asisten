@@ -79,6 +79,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // ==================== Document API ====================
   document: {
+    // Attachment management
     create: (data) => ipcRenderer.invoke('document:create', data),
     getAll: (filters) => ipcRenderer.invoke('document:getAll', filters),
     getByRequest: (requestId) => ipcRenderer.invoke('document:getByRequest', requestId),
@@ -86,9 +87,27 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getByPayment: (paymentId) => ipcRenderer.invoke('document:getByPayment', paymentId),
     delete: (id) => ipcRenderer.invoke('document:delete', id),
     saveFile: (fileData, fileName, options) => ipcRenderer.invoke('document:saveFile', { fileData, fileName, options }),
+
+    // Basic PDF generation
     generateRequestPdf: (requestId) => ipcRenderer.invoke('document:generateRequestPdf', requestId),
     generateContractPdf: (contractId) => ipcRenderer.invoke('document:generateContractPdf', contractId),
     generatePaymentVoucherPdf: (paymentId) => ipcRenderer.invoke('document:generatePaymentVoucherPdf', paymentId),
+
+    // Professional document generation
+    generateKwitansi: (requestId, options) => ipcRenderer.invoke('document:generateKwitansi', { requestId, options }),
+    generateSPP: (requestId, options) => ipcRenderer.invoke('document:generateSPP', { requestId, options }),
+    generateSPM: (requestId, options) => ipcRenderer.invoke('document:generateSPM', { requestId, options }),
+    generateContractDoc: (contractId, options) => ipcRenderer.invoke('document:generateContractDoc', { contractId, options }),
+    generateBAST: (contractId, options) => ipcRenderer.invoke('document:generateBAST', { contractId, options }),
+
+    // Batch generation
+    generateBatch: (items) => ipcRenderer.invoke('document:generateBatch', items),
+
+    // Generated document management
+    getGeneratedDocuments: (requestId) => ipcRenderer.invoke('document:getGeneratedDocuments', requestId),
+    deleteGeneratedDocument: (documentId) => ipcRenderer.invoke('document:deleteGeneratedDocument', documentId),
+
+    // Storage
     getStorageStats: () => ipcRenderer.invoke('document:getStorageStats')
   },
 
