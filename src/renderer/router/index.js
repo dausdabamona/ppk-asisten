@@ -6,113 +6,157 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
 
 // Lazy load components
+const MainLayout = () => import('../layouts/MainLayout.vue');
 const Dashboard = () => import('../views/Dashboard.vue');
+const Login = () => import('../views/Login.vue');
+
+// Master Data
+const SatkerView = () => import('../views/master/SatkerView.vue');
+const PegawaiListView = () => import('../views/master/PegawaiListView.vue');
+const PegawaiFormView = () => import('../views/master/PegawaiFormView.vue');
+const SupplierListView = () => import('../views/master/SupplierListView.vue');
+const DipaView = () => import('../views/master/DipaView.vue');
+const SbmView = () => import('../views/master/SbmView.vue');
+
+// Transaction
 const RequestList = () => import('../views/RequestList.vue');
 const RequestDetail = () => import('../views/RequestDetail.vue');
 const RequestCreate = () => import('../views/RequestCreate.vue');
-const VendorList = () => import('../views/VendorList.vue');
-const VendorDetail = () => import('../views/VendorDetail.vue');
 const ContractList = () => import('../views/ContractList.vue');
 const ContractDetail = () => import('../views/ContractDetail.vue');
 const PaymentList = () => import('../views/PaymentList.vue');
+
+// Reports & Settings
 const Reports = () => import('../views/Reports.vue');
 const Settings = () => import('../views/Settings.vue');
-const Login = () => import('../views/Login.vue');
 
 const routes = [
-  {
-    path: '/',
-    name: 'Dashboard',
-    component: Dashboard,
-    meta: { title: 'Dashboard', icon: 'home', requiresAuth: true }
-  },
   {
     path: '/login',
     name: 'Login',
     component: Login,
     meta: { title: 'Login', guest: true }
   },
+  {
+    path: '/',
+    component: MainLayout,
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: '',
+        name: 'Dashboard',
+        component: Dashboard,
+        meta: { title: 'Dashboard', icon: 'home' }
+      },
 
-  // Request routes
-  {
-    path: '/requests',
-    name: 'RequestList',
-    component: RequestList,
-    meta: { title: 'Daftar Permintaan', icon: 'document', requiresAuth: true }
-  },
-  {
-    path: '/requests/create',
-    name: 'RequestCreate',
-    component: RequestCreate,
-    meta: { title: 'Buat Permintaan', requiresAuth: true }
-  },
-  {
-    path: '/requests/create/:tier',
-    name: 'RequestCreateTier',
-    component: RequestCreate,
-    props: true,
-    meta: { title: 'Buat Permintaan', requiresAuth: true }
-  },
-  {
-    path: '/requests/:id',
-    name: 'RequestDetail',
-    component: RequestDetail,
-    props: true,
-    meta: { title: 'Detail Permintaan', requiresAuth: true }
-  },
+      // Master Data Routes
+      {
+        path: 'master/satker',
+        name: 'MasterSatker',
+        component: SatkerView,
+        meta: { title: 'Master Satker', icon: 'building', parent: 'Master Data' }
+      },
+      {
+        path: 'master/pegawai',
+        name: 'MasterPegawai',
+        component: PegawaiListView,
+        meta: { title: 'Master Pegawai', icon: 'users', parent: 'Master Data' }
+      },
+      {
+        path: 'master/pegawai/tambah',
+        name: 'PegawaiTambah',
+        component: PegawaiFormView,
+        meta: { title: 'Tambah Pegawai', parent: 'Master Data' }
+      },
+      {
+        path: 'master/pegawai/:id',
+        name: 'PegawaiEdit',
+        component: PegawaiFormView,
+        props: true,
+        meta: { title: 'Edit Pegawai', parent: 'Master Data' }
+      },
+      {
+        path: 'master/supplier',
+        name: 'MasterSupplier',
+        component: SupplierListView,
+        meta: { title: 'Master Supplier', icon: 'truck', parent: 'Master Data' }
+      },
+      {
+        path: 'master/dipa',
+        name: 'MasterDipa',
+        component: DipaView,
+        meta: { title: 'Master DIPA', icon: 'file-text', parent: 'Master Data' }
+      },
+      {
+        path: 'master/sbm',
+        name: 'MasterSbm',
+        component: SbmView,
+        meta: { title: 'Master SBM', icon: 'calculator', parent: 'Master Data' }
+      },
 
-  // Vendor routes
-  {
-    path: '/vendors',
-    name: 'VendorList',
-    component: VendorList,
-    meta: { title: 'Daftar Vendor', icon: 'users', requiresAuth: true }
-  },
-  {
-    path: '/vendors/:id',
-    name: 'VendorDetail',
-    component: VendorDetail,
-    props: true,
-    meta: { title: 'Detail Vendor', requiresAuth: true }
-  },
+      // Transaction Routes
+      {
+        path: 'requests',
+        name: 'RequestList',
+        component: RequestList,
+        meta: { title: 'Daftar Permintaan', icon: 'document', parent: 'Transaksi' }
+      },
+      {
+        path: 'requests/create',
+        name: 'RequestCreate',
+        component: RequestCreate,
+        meta: { title: 'Buat Permintaan', parent: 'Transaksi' }
+      },
+      {
+        path: 'requests/create/:tier',
+        name: 'RequestCreateTier',
+        component: RequestCreate,
+        props: true,
+        meta: { title: 'Buat Permintaan', parent: 'Transaksi' }
+      },
+      {
+        path: 'requests/:id',
+        name: 'RequestDetail',
+        component: RequestDetail,
+        props: true,
+        meta: { title: 'Detail Permintaan', parent: 'Transaksi' }
+      },
+      {
+        path: 'contracts',
+        name: 'ContractList',
+        component: ContractList,
+        meta: { title: 'Daftar Kontrak', icon: 'file-text', parent: 'Transaksi' }
+      },
+      {
+        path: 'contracts/:id',
+        name: 'ContractDetail',
+        component: ContractDetail,
+        props: true,
+        meta: { title: 'Detail Kontrak', parent: 'Transaksi' }
+      },
+      {
+        path: 'payments',
+        name: 'PaymentList',
+        component: PaymentList,
+        meta: { title: 'Daftar Pembayaran', icon: 'credit-card', parent: 'Transaksi' }
+      },
 
-  // Contract routes
-  {
-    path: '/contracts',
-    name: 'ContractList',
-    component: ContractList,
-    meta: { title: 'Daftar Kontrak', icon: 'file-text', requiresAuth: true }
-  },
-  {
-    path: '/contracts/:id',
-    name: 'ContractDetail',
-    component: ContractDetail,
-    props: true,
-    meta: { title: 'Detail Kontrak', requiresAuth: true }
-  },
+      // Reports
+      {
+        path: 'reports',
+        name: 'Reports',
+        component: Reports,
+        meta: { title: 'Laporan', icon: 'chart' }
+      },
 
-  // Payment routes
-  {
-    path: '/payments',
-    name: 'PaymentList',
-    component: PaymentList,
-    meta: { title: 'Daftar Pembayaran', icon: 'credit-card', requiresAuth: true }
-  },
-
-  // Reports
-  {
-    path: '/reports',
-    name: 'Reports',
-    component: Reports,
-    meta: { title: 'Laporan', icon: 'chart', requiresAuth: true }
-  },
-
-  // Settings
-  {
-    path: '/settings',
-    name: 'Settings',
-    component: Settings,
-    meta: { title: 'Pengaturan', icon: 'settings', requiresAuth: true }
+      // Settings
+      {
+        path: 'settings',
+        name: 'Settings',
+        component: Settings,
+        meta: { title: 'Pengaturan', icon: 'settings' }
+      }
+    ]
   },
 
   // Catch-all redirect
@@ -132,7 +176,7 @@ router.beforeEach((to, from, next) => {
   // Update document title
   document.title = to.meta.title ? `${to.meta.title} - PPK Asisten` : 'PPK Asisten';
 
-  // Check authentication (implement actual auth check)
+  // Check authentication
   const isAuthenticated = localStorage.getItem('ppk_user') !== null;
 
   if (to.meta.requiresAuth && !isAuthenticated) {

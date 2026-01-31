@@ -12,6 +12,39 @@ const invoke = (channel) => (...args) => ipcRenderer.invoke(channel, ...args);
 
 // Expose protected methods to renderer process
 contextBridge.exposeInMainWorld('electronAPI', {
+  // ==================== Satker API ====================
+  satker: {
+    get: () => ipcRenderer.invoke('satker:get'),
+    update: (data) => ipcRenderer.invoke('satker:update', data)
+  },
+
+  // ==================== Pejabat API ====================
+  pejabat: {
+    list: () => ipcRenderer.invoke('pejabat:list'),
+    create: (data) => ipcRenderer.invoke('pejabat:create', data),
+    update: (id, data) => ipcRenderer.invoke('pejabat:update', { id, data }),
+    delete: (id) => ipcRenderer.invoke('pejabat:delete', id)
+  },
+
+  // ==================== Unit Kerja API ====================
+  unitKerja: {
+    list: () => ipcRenderer.invoke('unit-kerja:list'),
+    create: (data) => ipcRenderer.invoke('unit-kerja:create', data),
+    update: (id, data) => ipcRenderer.invoke('unit-kerja:update', { id, data }),
+    delete: (id) => ipcRenderer.invoke('unit-kerja:delete', id)
+  },
+
+  // ==================== Pegawai API ====================
+  pegawai: {
+    list: (params) => ipcRenderer.invoke('pegawai:list', params),
+    get: (id) => ipcRenderer.invoke('pegawai:get', id),
+    create: (data) => ipcRenderer.invoke('pegawai:create', data),
+    update: (id, data) => ipcRenderer.invoke('pegawai:update', { id, data }),
+    delete: (id) => ipcRenderer.invoke('pegawai:delete', id),
+    importCsv: (content) => ipcRenderer.invoke('pegawai:import-csv', content),
+    exportCsv: (filters) => ipcRenderer.invoke('pegawai:export-csv', filters)
+  },
+
   // ==================== Request API ====================
   request: {
     create: (data) => ipcRenderer.invoke('request:create', data),
@@ -212,4 +245,4 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
 // Log that preload is loaded
 console.log('Preload script loaded successfully');
-console.log('Available APIs: request, vendor, contract, payment, document, report, user, db, app, dialog, window, log');
+console.log('Available APIs: satker, pejabat, unitKerja, pegawai, request, vendor, contract, payment, document, report, user, db, app, dialog, window, log');
