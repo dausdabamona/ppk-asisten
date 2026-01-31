@@ -16,12 +16,14 @@ const { initializeApis, routes } = require('./api');
 const { createErrorResponse } = require('./utils/errorHandler');
 const SatkerApi = require('./api/satkerApi');
 const PegawaiApi = require('./api/pegawaiApi');
+const SupplierApi = require('./api/supplierApi');
 
 // Application state
 let mainWindow;
 let database;
 let satkerApi;
 let pegawaiApi;
+let supplierApi;
 
 // Prevent multiple instances
 const gotTheLock = app.requestSingleInstanceLock();
@@ -101,6 +103,7 @@ function initializeDatabase() {
     // Initialize class-based APIs (they register their own IPC handlers)
     satkerApi = new SatkerApi(database.db);
     pegawaiApi = new PegawaiApi(database.db);
+    supplierApi = new SupplierApi(database.db);
 
     mainLogger.info('Database initialized successfully');
     return true;

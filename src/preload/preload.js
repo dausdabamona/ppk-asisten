@@ -45,6 +45,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
     exportCsv: (filters) => ipcRenderer.invoke('pegawai:export-csv', filters)
   },
 
+  // ==================== Supplier API ====================
+  supplier: {
+    list: (params) => ipcRenderer.invoke('supplier:list', params),
+    get: (id) => ipcRenderer.invoke('supplier:get', id),
+    create: (data) => ipcRenderer.invoke('supplier:create', data),
+    update: (id, data) => ipcRenderer.invoke('supplier:update', { id, data }),
+    delete: (id) => ipcRenderer.invoke('supplier:delete', id),
+    search: (params) => ipcRenderer.invoke('supplier:search', params)
+  },
+
   // ==================== Request API ====================
   request: {
     create: (data) => ipcRenderer.invoke('request:create', data),
@@ -245,4 +255,4 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
 // Log that preload is loaded
 console.log('Preload script loaded successfully');
-console.log('Available APIs: satker, pejabat, unitKerja, pegawai, request, vendor, contract, payment, document, report, user, db, app, dialog, window, log');
+console.log('Available APIs: satker, pejabat, unitKerja, pegawai, supplier, request, vendor, contract, payment, document, report, user, db, app, dialog, window, log');

@@ -15,6 +15,7 @@ const SatkerView = () => import('../views/master/SatkerView.vue');
 const PegawaiListView = () => import('../views/master/PegawaiListView.vue');
 const PegawaiFormView = () => import('../views/master/PegawaiFormView.vue');
 const SupplierListView = () => import('../views/master/SupplierListView.vue');
+const SupplierFormView = () => import('../views/master/SupplierFormView.vue');
 const DipaView = () => import('../views/master/DipaView.vue');
 const SbmView = () => import('../views/master/SbmView.vue');
 
@@ -80,6 +81,19 @@ const routes = [
         name: 'MasterSupplier',
         component: SupplierListView,
         meta: { title: 'Master Supplier', icon: 'truck', parent: 'Master Data' }
+      },
+      {
+        path: 'master/supplier/tambah',
+        name: 'SupplierTambah',
+        component: SupplierFormView,
+        meta: { title: 'Tambah Supplier', parent: 'Master Data' }
+      },
+      {
+        path: 'master/supplier/:id',
+        name: 'SupplierEdit',
+        component: SupplierFormView,
+        props: true,
+        meta: { title: 'Edit Supplier', parent: 'Master Data' }
       },
       {
         path: 'master/dipa',
