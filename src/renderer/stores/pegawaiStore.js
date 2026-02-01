@@ -55,13 +55,23 @@ export const usePegawaiStore = defineStore('pegawai', () => {
     try {
       const result = await window.electronAPI?.pegawai?.list(params);
       if (result) {
-        pegawaiList.value = result.data || [];
-        pagination.value = {
-          page: result.page || 1,
-          limit: result.limit || 10,
-          total: result.total || 0,
-          totalPages: result.totalPages || Math.ceil((result.total || 0) / (result.limit || 10))
-        };
+        if (Array.isArray(result)) {
+          pegawaiList.value = result;
+          pagination.value = {
+            page: params.page || 1,
+            limit: params.limit || 10,
+            total: result.length,
+            totalPages: Math.ceil(result.length / (params.limit || 10))
+          };
+        } else {
+          pegawaiList.value = result.data || [];
+          pagination.value = {
+            page: result.page || 1,
+            limit: result.limit || 10,
+            total: result.total || 0,
+            totalPages: result.totalPages || Math.ceil((result.total || 0) / (result.limit || 10))
+          };
+        }
       }
       return result;
     } catch (err) {

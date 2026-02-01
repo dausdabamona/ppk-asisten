@@ -123,9 +123,12 @@ export const useDipaStore = defineStore('dipa', () => {
     try {
       const result = await window.electronAPI?.dipa?.get(id);
       if (result) {
-        currentDipa.value = result;
+        // Extract data from response
+        const data = result.data || result;
+        currentDipa.value = data;
+        return data;
       }
-      return result;
+      return null;
     } catch (err) {
       error.value = err.message || 'Gagal memuat data DIPA';
       throw err;
@@ -212,6 +215,8 @@ export const useDipaStore = defineStore('dipa', () => {
         await fetchRevisiList(dipaId);
         // Update current revisi
         currentRevisi.value = revisiList.value.find(r => r.id === revisiId) || null;
+        // Refresh DIPA data to get updated total_pagu from active revision
+        await fetchDipaById(dipaId);
       }
       return result;
     } catch (err) {
@@ -279,15 +284,118 @@ export const useDipaStore = defineStore('dipa', () => {
     try {
       const result = await window.electronAPI?.dipa?.itemsHierarki(revisiId);
       if (result) {
-        hierarki.value = result;
+        // Normalize response - extract data from { success, data } wrapper
+        const items = Array.isArray(result) ? result : (result.data || []);
+        // Convert flat items to hierarki tree structure
+        hierarki.value = buildHierarkiTree(items);
       }
-      return result;
+      return hierarki.value;
     } catch (err) {
       error.value = err.message || 'Gagal memuat hierarki';
       throw err;
     } finally {
       loading.value = false;
     }
+  }
+
+  // Helper function to build hierarki tree from flat items
+  function buildHierarkiTree(items) {
+    if (!items || items.length === 0) return {};
+    
+    const tree = {};
+    
+    items.forEach(item => {
+      const program = item.kode_program || item.KODE_PROGRAM || 'Program';
+      const kegiatan = item.kode_kegiatan || item.KODE_KEGIATAN || 'Kegiatan';
+      const output = item.kode_output || item.KODE_OUTPUT || 'Output';
+      const akun = item.kode_akun || item.KODE_AKUN || 'Akun';
+      
+      // Initialize structure
+      if (!tree[program]) {
+        tree[program] = {
+          kode: program,
+          label: program,
+          uraian: item.uraian_program || item.URAIAN_PROGRAM || program,
+          type: 'program',
+          total_pagu: 0,
+          total_realisasi: 0,
+          total_blokir: 0,
+          children: {}
+        };
+      }
+      
+      if (!tree[program].children[kegiatan]) {
+        tree[program].children[kegiatan] = {
+          kode: kegiatan,
+          label: kegiatan,
+          uraian: item.uraian_kegiatan || item.URAIAN_KEGIATAN || kegiatan,
+          type: 'kegiatan',
+          total_pagu: 0,
+          total_realisasi: 0,
+          total_blokir: 0,
+          children: {}
+        };
+      }
+      
+      if (!tree[program].children[kegiatan].children[output]) {
+        tree[program].children[kegiatan].children[output] = {
+          kode: output,
+          label: output,
+          uraian: item.uraian_output || item.URAIAN_OUTPUT || output,
+          type: 'output',
+          total_pagu: 0,
+          total_realisasi: 0,
+          total_blokir: 0,
+          children: {}
+        };
+      }
+      
+      if (!tree[program].children[kegiatan].children[output].children[akun]) {
+        tree[program].children[kegiatan].children[output].children[akun] = {
+          kode: akun,
+          label: akun,
+          uraian: item.uraian_akun || item.URAIAN_AKUN || akun,
+          type: 'akun',
+          total_pagu: 0,
+          total_realisasi: 0,
+          total_blokir: 0,
+          item_count: 0,
+          items: []
+        };
+      }
+      
+      // Add item to akun
+      const pagu = parseFloat(item.total || item.pagu || item.nilai_pagu || 0);
+      const realisasi = parseFloat(item.realisasi || 0);
+      const blokir = parseFloat(item.blokir || 0);
+      
+      tree[program].children[kegiatan].children[output].children[akun].items.push({
+        ...item,
+        total_pagu: pagu,
+        total_realisasi: realisasi,
+        total_blokir: blokir
+      });
+      tree[program].children[kegiatan].children[output].children[akun].item_count++;
+      
+      // Sum up pagu/realisasi/blokir
+      tree[program].children[kegiatan].children[output].children[akun].total_pagu += pagu;
+      tree[program].children[kegiatan].children[output].children[akun].total_realisasi += realisasi;
+      tree[program].children[kegiatan].children[output].children[akun].total_blokir += blokir;
+      
+      tree[program].children[kegiatan].children[output].total_pagu += pagu;
+      tree[program].children[kegiatan].children[output].total_realisasi += realisasi;
+      tree[program].children[kegiatan].children[output].total_blokir += blokir;
+      
+      tree[program].children[kegiatan].total_pagu += pagu;
+      tree[program].children[kegiatan].total_realisasi += realisasi;
+      tree[program].children[kegiatan].total_blokir += blokir;
+      
+      tree[program].total_pagu += pagu;
+      tree[program].total_realisasi += realisasi;
+      tree[program].total_blokir += blokir;
+    });
+    
+    return tree;
   }
 
   async function getSisaPaguByItem(itemId) {

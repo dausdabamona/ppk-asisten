@@ -1,12 +1,14 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useSatkerStore } from '../../stores/satkerStore';
+import { usePegawaiStore } from '../../stores/pegawaiStore';
 import BaseModal from '../../components/ui/BaseModal.vue';
 import FormInput from '../../components/ui/FormInput.vue';
 import FormSelect from '../../components/ui/FormSelect.vue';
 import ConfirmDialog from '../../components/ui/ConfirmDialog.vue';
 
 const satkerStore = useSatkerStore();
+const pegawaiStore = usePegawaiStore();
 
 // Local state
 const editMode = ref(false);
@@ -35,10 +37,13 @@ const pejabatForm = ref({
 });
 const unitForm = ref({
   id: null,
-  kode: '',
   nama: '',
+  penanggung_jawab: '',
   status: 'aktif'
 });
+
+// Selected penanggung jawab for unit form
+const selectedPenanggungJawab = ref(null);
 
 // Options
 const jenisPejabatOptions = [
@@ -59,6 +64,32 @@ const golonganOptions = [
   'III/a', 'III/b', 'III/c', 'III/d',
   'IV/a', 'IV/b', 'IV/c', 'IV/d', 'IV/e'
 ].map(g => ({ value: g, label: g }));
+
+// Pegawai options for dropdown
+const pegawaiOptions = computed(() => {
+  return pegawaiStore.pegawaiList.map(p => ({
+    value: p.id,
+    label: `${p.nama}${p.nip ? ' (' + p.nip + ')' : ''}`
+  }));
+});
+
+// Selected pegawai id for form
+const selectedPegawaiId = ref(null);
+
+// Watch untuk auto-fill data pegawai saat dipilih
+watch(selectedPegawaiId, (newId) => {
+  if (newId) {
+    const pegawai = pegawaiStore.pegawaiList.find(p => p.id === newId);
+    console.log('Selected pegawai:', pegawai);
+    if (pegawai) {
+      pejabatForm.value.nama = pegawai.nama || pegawai.nama_lengkap || '';
+      pejabatForm.value.nip = pegawai.nip || pegawai.NIP || '';
+      pejabatForm.value.pangkat = pegawai.pangkat || pegawai.PANGKAT || '';
+      pejabatForm.value.golongan = pegawai.golongan || pegawai.GOLONGAN || pegawai.gol || '';
+      pejabatForm.value.jabatan = pegawai.jabatan || pegawai.JABATAN || '';
+    }
+  }
+});
 
 // Computed
 const isEditing = computed(() => editMode.value);
@@ -96,6 +127,9 @@ const saveSatker = async () => {
 const openPejabatModal = (pejabat = null) => {
   if (pejabat) {
     pejabatForm.value = { ...pejabat };
+    // Cari pegawai berdasarkan nama/nip untuk set selected
+    const found = pegawaiStore.pegawaiList.find(p => p.nama === pejabat.nama || p.nip === pejabat.nip);
+    selectedPegawaiId.value = found?.id || null;
   } else {
     pejabatForm.value = {
       id: null,
@@ -111,6 +145,7 @@ const openPejabatModal = (pejabat = null) => {
       sampai_dengan: '',
       status: 'aktif'
     };
+    selectedPegawaiId.value = null;
   }
   showPejabatModal.value = true;
 };
@@ -140,21 +175,31 @@ const savePejabat = async () => {
 const openUnitModal = (unit = null) => {
   if (unit) {
     unitForm.value = { ...unit };
+    // Find pegawai by name for penanggung jawab
+    const found = pegawaiStore.pegawaiList.find(p => p.nama === unit.penanggung_jawab);
+    selectedPenanggungJawab.value = found?.id || null;
   } else {
     unitForm.value = {
       id: null,
-      kode: '',
       nama: '',
+      penanggung_jawab: '',
       status: 'aktif'
     };
+    selectedPenanggungJawab.value = null;
   }
   showUnitModal.value = true;
 };
 
 const saveUnit = async () => {
-  if (!unitForm.value.kode || !unitForm.value.nama) {
-    alert('Kode dan Nama wajib diisi');
+  if (!unitForm.value.nama) {
+    alert('Nama Unit wajib diisi');
     return;
+  }
+
+  // Set penanggung_jawab from selected pegawai
+  if (selectedPenanggungJawab.value) {
+    const pegawai = pegawaiStore.pegawaiList.find(p => p.id === selectedPenanggungJawab.value);
+    unitForm.value.penanggung_jawab = pegawai?.nama || '';
   }
 
   saving.value = true;
@@ -206,6 +251,8 @@ const getJenisLabel = (jenis) => {
 
 onMounted(async () => {
   await satkerStore.initialize();
+  // Load semua pegawai untuk dropdown
+  await pegawaiStore.fetchPegawaiList({ limit: 1000 });
   initializeForms();
 });
 </script>
@@ -492,23 +539,21 @@ onMounted(async () => {
           <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
               <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kode</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Unit</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jumlah Pegawai</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Penanggung Jawab</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                 <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aksi</th>
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
               <tr v-if="satkerStore.unitKerja.length === 0">
-                <td colspan="5" class="px-6 py-12 text-center text-gray-500">
+                <td colspan="4" class="px-6 py-12 text-center text-gray-500">
                   Belum ada data unit kerja
                 </td>
               </tr>
               <tr v-for="u in satkerStore.unitKerja" :key="u.id" class="hover:bg-gray-50">
-                <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{{ u.kode }}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-gray-700">{{ u.nama }}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-gray-500">{{ u.jumlah_pegawai || 0 }} orang</td>
+                <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{{ u.nama }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-gray-700">{{ u.penanggung_jawab || '-' }}</td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <span :class="[
                     'px-2 py-1 text-xs font-medium rounded',
@@ -539,16 +584,25 @@ onMounted(async () => {
         />
 
         <div class="grid grid-cols-2 gap-4">
-          <FormInput v-model="pejabatForm.nama" label="Nama Lengkap" required />
-          <FormInput v-model="pejabatForm.nip" label="NIP" />
+          <FormSelect 
+            v-model="selectedPegawaiId" 
+            label="Pilih Pegawai" 
+            :options="pegawaiOptions"
+            placeholder="Pilih pegawai..."
+            required
+          />
+          <FormInput v-model="pejabatForm.nip" label="NIP" readonly />
         </div>
 
         <div class="grid grid-cols-2 gap-4">
-          <FormInput v-model="pejabatForm.pangkat" label="Pangkat" />
-          <FormSelect v-model="pejabatForm.golongan" label="Golongan" :options="golonganOptions" />
+          <FormInput v-model="pejabatForm.nama" label="Nama Lengkap" readonly />
+          <FormInput v-model="pejabatForm.jabatan" label="Jabatan" readonly />
         </div>
 
-        <FormInput v-model="pejabatForm.jabatan" label="Jabatan" />
+        <div class="grid grid-cols-2 gap-4">
+          <FormInput v-model="pejabatForm.pangkat" label="Pangkat" readonly />
+          <FormInput v-model="pejabatForm.golongan" label="Golongan" readonly />
+        </div>
 
         <div class="grid grid-cols-2 gap-4">
           <FormInput v-model="pejabatForm.no_sk" label="Nomor SK" />
@@ -585,8 +639,13 @@ onMounted(async () => {
     <!-- Unit Kerja Modal -->
     <BaseModal :show="showUnitModal" :title="unitModalTitle" size="md" @close="showUnitModal = false">
       <form @submit.prevent="saveUnit" class="space-y-4">
-        <FormInput v-model="unitForm.kode" label="Kode Unit" required />
         <FormInput v-model="unitForm.nama" label="Nama Unit" required />
+        <FormSelect 
+          v-model="selectedPenanggungJawab" 
+          label="Penanggung Jawab" 
+          :options="pegawaiOptions"
+          placeholder="Pilih penanggung jawab..."
+        />
         <FormSelect v-model="unitForm.status" label="Status" :options="statusOptions" />
       </form>
 

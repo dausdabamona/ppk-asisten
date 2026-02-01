@@ -14,9 +14,15 @@ export const useSatkerStore = defineStore('satker', () => {
   const loading = ref(false);
   const error = ref(null);
 
+  const normalizeList = (result) => {
+    if (Array.isArray(result)) return result;
+    if (result && Array.isArray(result.data)) return result.data;
+    return [];
+  };
+
   // Getters
   const activePejabat = computed(() => {
-    return pejabat.value.filter(p => p.status === 'aktif');
+    return pejabat.value.filter(p => !p.status || p.status === 'aktif');
   });
 
   const pejabatByJenis = computed(() => {
@@ -24,7 +30,7 @@ export const useSatkerStore = defineStore('satker', () => {
   });
 
   const activeUnitKerja = computed(() => {
-    return unitKerja.value.filter(u => u.status === 'aktif');
+    return unitKerja.value.filter(u => !u.status || u.status === 'aktif');
   });
 
   // Actions
@@ -34,7 +40,7 @@ export const useSatkerStore = defineStore('satker', () => {
     try {
       const result = await window.electronAPI?.satker?.get();
       if (result) {
-        satker.value = result;
+        satker.value = result?.data ?? result;
       }
       return result;
     } catch (err) {
@@ -69,7 +75,7 @@ export const useSatkerStore = defineStore('satker', () => {
     try {
       const result = await window.electronAPI?.pejabat?.list();
       if (result) {
-        pejabat.value = result;
+        pejabat.value = normalizeList(result);
       }
       return result;
     } catch (err) {
@@ -86,7 +92,8 @@ export const useSatkerStore = defineStore('satker', () => {
     try {
       const result = await window.electronAPI?.pejabat?.create(data);
       if (result) {
-        pejabat.value.push(result);
+        const created = result?.data ?? result;
+        pejabat.value.push(created);
       }
       return result;
     } catch (err) {
@@ -141,7 +148,7 @@ export const useSatkerStore = defineStore('satker', () => {
     try {
       const result = await window.electronAPI?.unitKerja?.list();
       if (result) {
-        unitKerja.value = result;
+        unitKerja.value = normalizeList(result);
       }
       return result;
     } catch (err) {
@@ -158,7 +165,8 @@ export const useSatkerStore = defineStore('satker', () => {
     try {
       const result = await window.electronAPI?.unitKerja?.create(data);
       if (result) {
-        unitKerja.value.push(result);
+        const created = result?.data ?? result;
+        unitKerja.value.push(created);
       }
       return result;
     } catch (err) {

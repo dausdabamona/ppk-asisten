@@ -3,14 +3,13 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
-const email = ref('');
-const password = ref('');
+const email = ref('admin@pkpsorong.ac.id');
 const error = ref('');
 const loading = ref(false);
 
 const login = async () => {
-  if (!email.value || !password.value) {
-    error.value = 'Email dan password harus diisi';
+  if (!email.value) {
+    error.value = 'Email harus diisi';
     return;
   }
 
@@ -18,28 +17,16 @@ const login = async () => {
   error.value = '';
 
   try {
-    // Simple auth check - in production use proper auth
-    const result = await window.electronAPI?.user?.authenticate(email.value, password.value);
-
-    if (result?.success) {
-      localStorage.setItem('ppk_user', JSON.stringify(result.user));
-      router.push('/');
-    } else {
-      error.value = 'Email atau password salah';
-    }
+    // Auto login tanpa validasi password
+    localStorage.setItem('ppk_user', JSON.stringify({
+      id: '1',
+      name: 'Administrator',
+      email: email.value,
+      role: 'admin'
+    }));
+    router.push('/');
   } catch (err) {
-    // For demo, allow admin/admin123
-    if (email.value === 'admin@pkpsorong.ac.id' && password.value === 'admin123') {
-      localStorage.setItem('ppk_user', JSON.stringify({
-        id: '1',
-        name: 'Administrator',
-        email: email.value,
-        role: 'admin'
-      }));
-      router.push('/');
-    } else {
-      error.value = 'Gagal login: ' + (err.message || 'Unknown error');
-    }
+    error.value = 'Gagal login: ' + (err.message || 'Unknown error');
   } finally {
     loading.value = false;
   }
@@ -74,18 +61,6 @@ const login = async () => {
           />
         </div>
 
-        <!-- Password -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-          <input
-            v-model="password"
-            type="password"
-            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="Masukkan password"
-            required
-          />
-        </div>
-
         <!-- Error Message -->
         <div v-if="error" class="bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm">
           {{ error }}
@@ -111,7 +86,7 @@ const login = async () => {
       <!-- Demo Credentials -->
       <div class="mt-6 p-4 bg-gray-50 rounded-lg">
         <p class="text-xs text-gray-500 text-center">
-          Demo: admin@pkpsorong.ac.id / admin123
+          Masukkan email apapun untuk masuk (Password tidak diperlukan)
         </p>
       </div>
     </div>

@@ -7,6 +7,14 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 
+// Jenis LP (Type of LP)
+export const LP_JENIS = {
+  BARANG: 'BARANG',
+  JASA: 'JASA',
+  PJLP: 'PJLP',
+  KEGIATAN: 'KEGIATAN'
+};
+
 // Status constants
 export const LP_STATUS = {
   DRAFT: 'DRAFT',

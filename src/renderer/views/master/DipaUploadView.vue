@@ -161,9 +161,14 @@ const saveRevisi = async () => {
   try {
     await dipaStore.uploadRevisiCSV(props.id, {
       csvContent: csvContent.value,
+      nomor_revisi: nextRevisiNumber.value,
       tanggal_revisi: form.value.tanggal_revisi,
       jenis_revisi: form.value.jenis_revisi,
-      keterangan: form.value.keterangan
+      keterangan: form.value.keterangan,
+      // Tambahkan data items untuk dihitung total_pagu
+      items: previewData.value?.items || [],
+      total_pagu: previewData.value?.totalPagu || 0,
+      total_item: previewData.value?.totalItems || 0
     });
 
     router.push(`/master/dipa/${props.id}`);

@@ -5,7 +5,7 @@
  */
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { useLembarPermintaanStore, LP_STATUS, LP_STATUS_LABELS, LP_JENIS } from '../../stores/lembarPermintaanStore';
+import { useLembarPermintaanStore, LP_STATUS, LP_STATUS_LABEL, LP_JENIS } from '../../stores/lembarPermintaanStore';
 import LPStatusBadge from '../../components/lp/LPStatusBadge.vue';
 import FormInput from '../../components/ui/FormInput.vue';
 import FormSelect from '../../components/ui/FormSelect.vue';
@@ -28,7 +28,7 @@ const error = ref(null);
 // Computed
 const statusOptions = computed(() => [
   { value: '', label: 'Semua Status' },
-  ...Object.entries(LP_STATUS_LABELS).map(([value, label]) => ({ value, label }))
+  ...Object.entries(LP_STATUS_LABEL).map(([value, label]) => ({ value, label }))
 ]);
 
 const jenisOptions = computed(() => [

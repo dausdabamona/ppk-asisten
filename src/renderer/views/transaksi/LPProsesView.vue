@@ -5,7 +5,7 @@
  */
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import { useLembarPermintaanStore, LP_STATUS, LP_STATUS_LABELS } from '../../stores/lembarPermintaanStore';
+import { useLembarPermintaanStore, LP_STATUS, LP_STATUS_LABEL } from '../../stores/lembarPermintaanStore';
 import { useSupplierStore } from '../../stores/supplierStore';
 import LPStatusBadge from '../../components/lp/LPStatusBadge.vue';
 import LPStatusProgress from '../../components/lp/LPStatusProgress.vue';

@@ -58,8 +58,8 @@
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 py-8">
-      <!-- Router view for transaction routes -->
-      <router-view v-if="$route.path.startsWith('/transaksi')" />
+      <!-- Router view for transaction routes and ALL routed views -->
+      <router-view v-if="$route.path !== '/'" />
       
       <!-- Main dashboard/app views with sidebar -->
       <div v-else class="flex gap-6">
@@ -77,33 +77,61 @@
                 >
                   Dashboard
                 </button>
-                <button
-                  @click="currentView = 'tier1'"
-                  :class="['w-full text-left px-3 py-2 rounded-lg text-sm transition-colors', 
-                           currentView === 'tier1' ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-50']"
+              </div>
+            </div>
+
+            <!-- Transaksi Section -->
+            <div>
+              <h3 class="text-sm font-semibold text-gray-500 uppercase mb-2">Transaksi</h3>
+              <div class="space-y-1">
+                <router-link
+                  to="/transaksi"
+                  :class="['block w-full text-left px-3 py-2 rounded-lg text-sm transition-colors', 
+                           $route.path === '/transaksi' ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-50']"
                 >
-                  Tier 1 (< Rp 10 Juta)
-                </button>
-                <button
-                  @click="currentView = 'tier2'"
-                  :class="['w-full text-left px-3 py-2 rounded-lg text-sm transition-colors', 
-                           currentView === 'tier2' ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-50']"
+                  📊 Semua Transaksi
+                </router-link>
+                <router-link
+                  to="/transaksi/lp"
+                  :class="['block w-full text-left px-3 py-2 rounded-lg text-sm transition-colors', 
+                           $route.path.startsWith('/transaksi/lp') ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-50']"
                 >
-                  Tier 2 (Rp 10-50 Juta)
-                </button>
-                <button
-                  @click="currentView = 'tier3'"
-                  :class="['w-full text-left px-3 py-2 rounded-lg text-sm transition-colors', 
-                           currentView === 'tier3' ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-50']"
-                >
-                  Tier 3 (> Rp 50 Juta)
-                </button>
+                  📋 Lembar Permintaan
+                </router-link>
                 <router-link
                   to="/transaksi/st"
                   :class="['block w-full text-left px-3 py-2 rounded-lg text-sm transition-colors', 
-                           $route.path.startsWith('/transaksi') ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-50']"
+                           $route.path.startsWith('/transaksi/st') ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-50']"
                 >
-                  Transaksi
+                  ✈️ Surat Tugas
+                </router-link>
+              </div>
+            </div>
+
+            <!-- Permintaan Tier Section -->
+            <div>
+              <h3 class="text-sm font-semibold text-gray-500 uppercase mb-2">Permintaan</h3>
+              <div class="space-y-1">
+                <router-link
+                  to="/transaksi/tier1/tambah"
+                  :class="['block w-full text-left px-3 py-2 rounded-lg text-sm transition-colors', 
+                           $route.path.includes('tier1') ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-50']"
+                >
+                  Tier 1
+                </router-link>
+                <router-link
+                  to="/transaksi/tier2/tambah"
+                  :class="['block w-full text-left px-3 py-2 rounded-lg text-sm transition-colors', 
+                           $route.path.includes('tier2') ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-50']"
+                >
+                  Tier 2
+                </router-link>
+                <router-link
+                  to="/transaksi/tier3/tambah"
+                  :class="['block w-full text-left px-3 py-2 rounded-lg text-sm transition-colors', 
+                           $route.path.includes('tier3') ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-50']"
+                >
+                  Tier 3
                 </router-link>
               </div>
             </div>
@@ -143,6 +171,25 @@
           <!-- Dashboard View -->
           <div v-if="currentView === 'dashboard'" class="space-y-6">
             <h2 class="text-3xl font-bold">Dashboard</h2>
+
+            <!-- Quick Actions -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <router-link to="/transaksi/lp/barang/tambah" class="quick-action-card lp-card">
+                <div class="icon">📋</div>
+                <h3 class="title">Lembar Permintaan</h3>
+                <p class="desc">Buat permintaan pengadaan barang/jasa</p>
+              </router-link>
+              <router-link to="/transaksi/st/tambah" class="quick-action-card st-card">
+                <div class="icon">✈️</div>
+                <h3 class="title">Surat Tugas</h3>
+                <p class="desc">Buat surat tugas perjalanan dinas</p>
+              </router-link>
+              <router-link to="/transaksi/tier1/tambah" class="quick-action-card tier-card">
+                <div class="icon">📝</div>
+                <h3 class="title">Permintaan Tier</h3>
+                <p class="desc">Ajukan permintaan Tier 1/2/3</p>
+              </router-link>
+            </div>
         
         <!-- Stats Cards -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -202,13 +249,13 @@
               <tbody class="bg-white divide-y divide-gray-200">
                 <tr v-for="request in requests" :key="request.id" class="hover:bg-gray-50">
                   <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {{ request.request_number }}
+                    {{ request.id }}
                   </td>
                   <td class="px-6 py-4 text-sm text-gray-900">
                     {{ request.item_name }}
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {{ formatCurrency(request.estimated_value) }}
+                    {{ formatCurrency(request.budget_total || request.estimated_value || 0) }}
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
                     <span :class="getStatusClass(request.status)">
@@ -259,53 +306,79 @@
 
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">
-                Perkiraan Nilai *
+                Item DIPA (Kode Anggaran) *
               </label>
-              <input 
-                v-model.number="tier1Form.estimated_value"
-                type="number"
-                required
-                min="1"
-                max="10000000"
-                class="input-field"
-                placeholder="5000000"
-              />
-              <p v-if="tier1Form.estimated_value > 10000000" 
-                 class="text-red-500 text-sm mt-1">
-                ⚠️ Nilai melebihi Rp 10 juta. Gunakan Tier 2.
-              </p>
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                Kode Anggaran *
-              </label>
-              <input 
-                v-model="tier1Form.budget_code"
+              <input
+                v-model="tier1DipaSearch"
                 type="text"
-                required
-                class="input-field"
-                placeholder="5211"
+                class="input-field mb-2"
+                placeholder="Cari kode akun/uraian item..."
               />
+              <div class="border rounded-lg p-3 max-h-64 overflow-y-auto space-y-2">
+                <div v-if="filteredDipaItems.length === 0" class="text-gray-500 text-sm">
+                  Belum ada item DIPA. Import DIPA terlebih dahulu.
+                </div>
+                <label v-for="item in filteredDipaItems" :key="item.id" class="flex items-start gap-3 text-sm">
+                  <input
+                    type="checkbox"
+                    :value="item.id"
+                    v-model="tier1Form.budget_item_ids"
+                    class="mt-1"
+                  />
+                  <div class="flex-1">
+                    <div class="font-mono text-xs text-gray-500">{{ item.kode_akun || '-' }}</div>
+                    <div class="text-gray-900">{{ item.uraian_item || '-' }}</div>
+                  </div>
+                  <div class="text-right text-gray-700 whitespace-nowrap">
+                    {{ formatCurrency(item.total || 0) }}
+                  </div>
+                </label>
+              </div>
+              <div class="text-sm text-gray-600 mt-2">
+                Total terpilih: <strong>{{ formatCurrency(tier1BudgetTotal) }}</strong>
+              </div>
             </div>
 
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">
                 Unit
               </label>
-              <select v-model="tier1Form.unit" required class="input-field">
-                <option value="">Pilih Unit</option>
-                <option value="TU">Tata Usaha</option>
-                <option value="Akademik">Akademik</option>
-                <option value="Lab">Laboratorium</option>
-                <option value="Perpustakaan">Perpustakaan</option>
+              <div class="flex gap-2 mb-2">
+                <input
+                  v-model="tier1Form.unit_name"
+                  list="unit-options"
+                  required
+                  class="input-field"
+                  placeholder="Masukkan unit"
+                />
+                <button type="button" @click="addTier1Unit" class="btn-secondary">Tambah</button>
+              </div>
+              <datalist id="unit-options">
+                <option v-for="unit in tier1Units" :key="unit" :value="unit"></option>
+              </datalist>
+              <div class="flex flex-wrap gap-2">
+                <span v-for="unit in tier1Units" :key="unit" class="px-2 py-1 bg-gray-100 rounded text-xs">
+                  {{ unit }}
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                Penanggung Jawab Unit
+              </label>
+              <select v-model="tier1Form.unit_responsible_nip" required class="input-field">
+                <option value="">Pilih Pegawai</option>
+                <option v-for="pegawai in availablePegawai" :key="pegawai.nip" :value="pegawai.nip">
+                  {{ pegawai.nama }} ({{ pegawai.nip }})
+                </option>
               </select>
             </div>
 
             <div class="flex space-x-4">
               <button 
                 type="submit"
-                :disabled="submitting || tier1Form.estimated_value > 10000000"
+                :disabled="submitting || tier1Form.budget_item_ids.length === 0"
                 class="btn-primary flex-1"
               >
                 {{ submitting ? 'Processing...' : 'Submit Request' }}
@@ -659,39 +732,22 @@
       <div v-else-if="currentView === 'master-dipa'" class="space-y-6">
         <h2 class="text-3xl font-bold">Master Data DIPA</h2>
 
-        <!-- Tab Navigation -->
-        <div class="flex gap-2 border-b border-gray-200">
-          <button 
-            @click="dipaTab = 'manual'"
-            :class="['px-4 py-2 font-medium border-b-2', dipaTab === 'manual' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600 hover:text-gray-800']"
-          >
-            Input Manual
-          </button>
-          <button 
-            @click="dipaTab = 'import'"
-            :class="['px-4 py-2 font-medium border-b-2', dipaTab === 'import' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600 hover:text-gray-800']"
-          >
-            Import CSV
-          </button>
-        </div>
-        
-        <!-- Tab: Input Manual -->
-        <div v-if="dipaTab === 'manual'" class="space-y-6">
+        <div class="space-y-6">
           <div class="card">
             <h3 class="text-lg font-semibold mb-4">Tambah DIPA</h3>
             <form @submit.prevent="addDipa" class="space-y-4">
               <div class="grid grid-cols-3 gap-4">
                 <div>
                   <label class="block text-sm font-medium mb-1">Tahun Anggaran</label>
-                  <input v-model.number="dipaForm.tahun" type="number" min="2020" max="2030" class="w-full px-3 py-2 border rounded-lg" required>
+                  <input v-model.number="dipaForm.tahun_anggaran" type="number" min="2020" max="2030" class="w-full px-3 py-2 border rounded-lg" required>
                 </div>
                 <div>
                   <label class="block text-sm font-medium mb-1">Nomor DIPA</label>
-                  <input v-model="dipaForm.nomor" type="text" class="w-full px-3 py-2 border rounded-lg" required>
+                  <input v-model="dipaForm.nomor_dipa" type="text" class="w-full px-3 py-2 border rounded-lg" required>
                 </div>
                 <div>
                   <label class="block text-sm font-medium mb-1">Tanggal DIPA</label>
-                  <input v-model="dipaForm.tanggal" type="date" class="w-full px-3 py-2 border rounded-lg" required>
+                  <input v-model="dipaForm.tanggal_dipa" type="date" class="w-full px-3 py-2 border rounded-lg" required>
                 </div>
               </div>
               <button type="submit" class="btn-primary">Tambah DIPA</button>
@@ -699,44 +755,77 @@
           </div>
         </div>
 
-        <!-- Tab: Import CSV -->
-        <div v-if="dipaTab === 'import'" class="space-y-6">
-          <div class="card">
-            <h3 class="text-lg font-semibold mb-4">📥 Import CSV DIPA</h3>
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium mb-2">Pilih File CSV</label>
-                <div class="flex items-center gap-4">
-                  <input 
-                    type="file" 
-                    ref="dipaCsvInput"
-                    accept=".csv"
-                    @change="handleDipaCsvFileSelect"
-                    class="flex-1 px-3 py-2 border rounded-lg text-sm"
-                  >
-                  <button type="button" @click="dipaCsvInput?.click()" class="btn-secondary">Browse</button>
-                </div>
-              </div>
+        <!-- Daftar DIPA -->
+        <div class="card">
+          <h3 class="text-lg font-semibold mb-4">Daftar DIPA ({{ dipaList.length }})</h3>
+          <div v-if="dipaList.length === 0" class="text-gray-500 text-center py-8">
+            Belum ada DIPA. Tambahkan DIPA baru di form atas.
+          </div>
+          <div v-else class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tahun</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nomor DIPA</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                <tr v-for="dipa in dipaList" :key="dipa.id">
+                  <td class="px-4 py-3">{{ dipa.tahun_anggaran }}</td>
+                  <td class="px-4 py-3">{{ dipa.nomor_dipa }}</td>
+                  <td class="px-4 py-3">{{ dipa.tanggal_dipa ? new Date(dipa.tanggal_dipa).toLocaleDateString('id-ID') : '-' }}</td>
+                  <td class="px-4 py-3 space-x-2">
+                    <button @click="openDipaDetail(dipa.id)" class="text-blue-600 hover:text-blue-800 text-sm">📋 Detail</button>
+                    <button @click="deleteDipa(dipa.id)" class="text-red-600 hover:text-red-800 text-sm">🗑️ Hapus</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
 
-              <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
-                <p class="font-medium text-blue-900 mb-2">📋 Header CSV wajib:</p>
-                <code class="text-blue-800 whitespace-pre-wrap">KDSATKER,KODE_PROGRAM,KODE_KEGIATAN,KODE_OUTPUT,KDIB,VOLUME_OUTPUT,KODE_SUBOUTPUT,VOLUME_SUBOUTPUT,KODE_KOMPONEN,KODE_SUBKOMPONEN,URAIAN_SUBKOMPONEN,KODE_AKUN,KODE_JENIS_BEBAN,KODE_CARA_TARIK,KODE_JENIS_BANTUAN,KODE_REGISTER,HEADER1,HEADER2,KODE_ITEM,NOMOR_ITEM,CONS_ITEM,URAIAN_ITEM,SUMBER_DANA,VOL_KEG_1,SAT_KEG_1,VOL_KEG_2,SAT_KEG_2,VOL_KEG_3,SAT_KEG_3,VOL_KEG_4,SAT_KEG_4,VOLKEG,SATKEG,HARGASAT,TOTAL,KODE_BLOKIR,NILAI_BLOKIR,KODE_STS_HISTORY,POK_NILAI_1,POK_NILAI_2,POK_NILAI_3,POK_NILAI_4,POK_NILAI_5,POK_NILAI_6,POK_NILAI_7,POK_NILAI_8,POK_NILAI_9,POK_NILAI_10,POK_NILAI_11,POK_NILAI_12</code>
+        <!-- CSV Import Section (shown when Detail button clicked) -->
+        <div v-if="selectedDipaForImport" data-section="import-dipa-csv" class="card">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold">📥 Import CSV untuk DIPA {{ selectedDipaForImport?.nomor_dipa }}</h3>
+            <button @click="selectedDipaForImport = null" class="text-gray-500 hover:text-gray-700">✕</button>
+          </div>
+          
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium mb-2">Pilih File CSV</label>
+              <div class="flex items-center gap-4">
+                <input 
+                  type="file" 
+                  ref="dipaCsvInput"
+                  accept=".csv"
+                  @change="handleDipaCsvFileSelect"
+                  class="flex-1 px-3 py-2 border rounded-lg text-sm"
+                >
+                <button type="button" @click="dipaCsvInput?.click()" class="btn-secondary">Browse</button>
               </div>
-
-              <p class="text-sm text-gray-600">
-                ✓ Format file: <strong>.csv (comma-separated)</strong><br>
-                ✓ Encoding: <strong>UTF-8</strong>
-              </p>
             </div>
+
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
+              <p class="font-medium text-blue-900 mb-2">📋 Header CSV wajib:</p>
+              <code class="text-blue-800 whitespace-pre-wrap text-xs">KDSATKER,KODE_PROGRAM,KODE_KEGIATAN,KODE_OUTPUT,KDIB,VOLUME_OUTPUT,KODE_SUBOUTPUT,VOLUME_SUBOUTPUT,KODE_KOMPONEN,KODE_SUBKOMPONEN,URAIAN_SUBKOMPONEN,KODE_AKUN,KODE_JENIS_BEBAN,KODE_CARA_TARIK,KODE_JENIS_BANTUAN,KODE_REGISTER,HEADER1,HEADER2,KODE_ITEM,NOMOR_ITEM,CONS_ITEM,URAIAN_ITEM,SUMBER_DANA,VOL_KEG_1,SAT_KEG_1,VOL_KEG_2,SAT_KEG_2,VOL_KEG_3,SAT_KEG_3,VOL_KEG_4,SAT_KEG_4,VOLKEG,SATKEG,HARGASAT,TOTAL,KODE_BLOKIR,NILAI_BLOKIR,KODE_STS_HISTORY,POK_NILAI_1,POK_NILAI_2,POK_NILAI_3,POK_NILAI_4,POK_NILAI_5,POK_NILAI_6,POK_NILAI_7,POK_NILAI_8,POK_NILAI_9,POK_NILAI_10,POK_NILAI_11,POK_NILAI_12</code>
+            </div>
+
+            <p class="text-sm text-gray-600">
+              ✓ Format file: <strong>.csv (comma-separated)</strong><br>
+              ✓ Encoding: <strong>UTF-8</strong>
+            </p>
           </div>
 
           <!-- Preview DIPA CSV -->
-          <div v-if="dipaCsvPreview.length > 0" class="card">
-            <h3 class="text-lg font-semibold mb-4">👁️ Preview Data ({{ dipaCsvPreview.length }} baris)</h3>
+          <div v-if="dipaCsvPreview.length > 0" class="mt-6 pt-6 border-t">
+            <h4 class="text-lg font-semibold mb-4">👁️ Preview Data ({{ dipaCsvPreview.length }} baris)</h4>
 
             <div v-if="dipaCsvErrors.length > 0" class="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
               <p class="font-medium text-red-900 mb-2">⚠️ Ditemukan {{ dipaCsvErrors.length }} error:</p>
-              <ul class="text-sm text-red-800 space-y-1">
+              <ul class="text-sm text-red-800 space-y-1 max-h-40 overflow-y-auto">
                 <li v-for="(error, idx) in dipaCsvErrors" :key="idx" class="flex gap-2">
                   <span class="font-medium">Baris {{ error.row }}:</span>
                   <span>{{ error.message }}</span>
@@ -791,38 +880,11 @@
           </div>
         </div>
 
-        <!-- Daftar DIPA -->
         <div class="card">
-          <h3 class="text-lg font-semibold mb-4">Daftar DIPA ({{ dipaList.length }})</h3>
-          <div v-if="dipaList.length === 0" class="text-gray-500 text-center py-8">
-            Belum ada DIPA. Tambahkan DIPA baru di form atas.
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold">Item DIPA ({{ dipaItems.length }})</h3>
+            <button @click="cleanupDipaItems" class="btn-secondary text-sm">🧹 Hapus Item Kosong</button>
           </div>
-          <div v-else class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tahun</th>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nomor DIPA</th>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
-                </tr>
-              </thead>
-              <tbody class="bg-white divide-y divide-gray-200">
-                <tr v-for="dipa in dipaList" :key="dipa.id">
-                  <td class="px-4 py-3">{{ dipa.tahun }}</td>
-                  <td class="px-4 py-3">{{ dipa.nomor }}</td>
-                  <td class="px-4 py-3">{{ dipa.tanggal }}</td>
-                  <td class="px-4 py-3">
-                    <button @click="deleteDipa(dipa.id)" class="text-red-600 hover:text-red-800">Hapus</button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div class="card">
-          <h3 class="text-lg font-semibold mb-4">Item DIPA ({{ dipaItems.length }})</h3>
           <div v-if="dipaItems.length === 0" class="text-gray-500 text-center py-8">
             Belum ada item DIPA. Import dari CSV untuk menambahkan data.
           </div>
@@ -830,24 +892,26 @@
             <table class="min-w-full divide-y divide-gray-200 text-sm">
               <thead class="bg-gray-50">
                 <tr>
-                  <th class="px-3 py-2 text-left font-medium text-gray-700">KDSATKER</th>
-                  <th class="px-3 py-2 text-left font-medium text-gray-700">KODE_PROGRAM</th>
-                  <th class="px-3 py-2 text-left font-medium text-gray-700">KODE_KEGIATAN</th>
-                  <th class="px-3 py-2 text-left font-medium text-gray-700">KODE_OUTPUT</th>
-                  <th class="px-3 py-2 text-left font-medium text-gray-700">KODE_AKUN</th>
-                  <th class="px-3 py-2 text-left font-medium text-gray-700">URAIAN_ITEM</th>
-                  <th class="px-3 py-2 text-left font-medium text-gray-700">TOTAL</th>
+                  <th class="px-3 py-2 text-left font-medium text-gray-700">Kode Program</th>
+                  <th class="px-3 py-2 text-left font-medium text-gray-700">Kode Kegiatan</th>
+                  <th class="px-3 py-2 text-left font-medium text-gray-700">Kode Output</th>
+                  <th class="px-3 py-2 text-left font-medium text-gray-700">Kode Akun</th>
+                  <th class="px-3 py-2 text-left font-medium text-gray-700">Uraian Item</th>
+                  <th class="px-3 py-2 text-left font-medium text-gray-700">Volume</th>
+                  <th class="px-3 py-2 text-left font-medium text-gray-700">Satuan</th>
+                  <th class="px-3 py-2 text-right font-medium text-gray-700">Total</th>
                 </tr>
               </thead>
               <tbody class="bg-white divide-y divide-gray-200">
                 <tr v-for="item in dipaItems" :key="item.id">
-                  <td class="px-3 py-2">{{ item.KDSATKER }}</td>
-                  <td class="px-3 py-2">{{ item.KODE_PROGRAM }}</td>
-                  <td class="px-3 py-2">{{ item.KODE_KEGIATAN }}</td>
-                  <td class="px-3 py-2">{{ item.KODE_OUTPUT }}</td>
-                  <td class="px-3 py-2">{{ item.KODE_AKUN }}</td>
-                  <td class="px-3 py-2">{{ item.URAIAN_ITEM }}</td>
-                  <td class="px-3 py-2">{{ item.TOTAL }}</td>
+                  <td class="px-3 py-2">{{ item.kode_program }}</td>
+                  <td class="px-3 py-2">{{ item.kode_kegiatan }}</td>
+                  <td class="px-3 py-2">{{ item.kode_output }}</td>
+                  <td class="px-3 py-2">{{ item.kode_akun }}</td>
+                  <td class="px-3 py-2">{{ item.uraian_item }}</td>
+                  <td class="px-3 py-2 text-center">{{ item.volume }} {{ item.satuan }}</td>
+                  <td class="px-3 py-2">{{ item.satuan }}</td>
+                  <td class="px-3 py-2 text-right">{{ item.total?.toLocaleString('id-ID') }}</td>
                 </tr>
               </tbody>
             </table>
@@ -933,13 +997,15 @@ const requests = ref([])
 const tier1Form = ref({
   item_name: '',
   description: '',
-  estimated_value: 0,
-  budget_code: '',
-  unit: '',
+  budget_item_ids: [],
+  unit_name: '',
+  unit_responsible_nip: '',
   tier: 'tier1',
   requester_id: 'admin-id', // TODO: Get from auth
   status: 'draft'
 })
+const tier1Units = ref(['Tata Usaha', 'Akademik', 'Laboratorium', 'Perpustakaan'])
+const tier1DipaSearch = ref('')
 
 // Master data states
 const satkerForm = ref({
@@ -983,6 +1049,7 @@ const dipaCsvInput = ref(null)
 const dipaCsvPreview = ref([])
 const dipaCsvErrors = ref([])
 const dipaItems = ref([])
+const selectedDipaForImport = ref(null)
 const loadingDipa = ref(false)
 
 // Computed
@@ -994,14 +1061,29 @@ const stats = computed(() => {
   }
 })
 
+const tier1BudgetTotal = computed(() => {
+  const selected = new Set(tier1Form.value.budget_item_ids || [])
+  return dipaItems.value
+    .filter(item => selected.has(item.id))
+    .reduce((sum, item) => sum + (Number(item.total) || 0), 0)
+})
+
+const filteredDipaItems = computed(() => {
+  const query = tier1DipaSearch.value.trim().toLowerCase()
+  if (!query) return dipaItems.value
+  return dipaItems.value.filter(item => {
+    const kode = String(item.kode_akun || '').toLowerCase()
+    const uraian = String(item.uraian_item || '').toLowerCase()
+    return kode.includes(query) || uraian.includes(query)
+  })
+})
+
 // Methods
 async function loadRequests() {
   loading.value = true
   try {
-    const result = await window.electronAPI.db.getRequests({})
-    if (result.success) {
-      requests.value = result.data
-    }
+    const stored = localStorage.getItem('ppk-requests')
+    requests.value = stored ? JSON.parse(stored) : []
   } catch (error) {
     console.error('Failed to load requests:', error)
   } finally {
@@ -1012,16 +1094,19 @@ async function loadRequests() {
 async function submitTier1() {
   submitting.value = true
   try {
-    const result = await window.electronAPI.db.createRequest(tier1Form.value)
-    
-    if (result.success) {
-      alert(`Request created successfully!\nRequest #: ${result.data.request_number}`)
-      resetTier1Form()
-      await loadRequests()
-      currentView.value = 'dashboard'
-    } else {
-      alert('Error: ' + result.error)
+    const payload = {
+      id: `req-${Date.now()}`,
+      created_at: new Date().toISOString(),
+      ...tier1Form.value,
+      budget_total: tier1BudgetTotal.value
     }
+
+    const updated = [payload, ...(requests.value || [])]
+    requests.value = updated
+    localStorage.setItem('ppk-requests', JSON.stringify(updated))
+
+    resetTier1Form()
+    alert('✅ Request berhasil disimpan')
   } catch (error) {
     alert('Error: ' + error.message)
   } finally {
@@ -1033,12 +1118,21 @@ function resetTier1Form() {
   tier1Form.value = {
     item_name: '',
     description: '',
-    estimated_value: 0,
-    budget_code: '',
-    unit: '',
+    budget_item_ids: [],
+    unit_name: '',
+    unit_responsible_nip: '',
     tier: 'tier1',
     requester_id: 'admin-id',
     status: 'draft'
+  }
+  tier1DipaSearch.value = ''
+}
+
+function addTier1Unit() {
+  const name = tier1Form.value.unit_name?.trim()
+  if (!name) return
+  if (!tier1Units.value.includes(name)) {
+    tier1Units.value.push(name)
   }
 }
 
@@ -1335,9 +1429,25 @@ async function importDipaCsvData() {
     if (importBtn) importBtn.disabled = true
     
     console.log('📤 Importing', dataToImport.length, 'DIPA records...')
+
+    const normalizedData = dataToImport.map(row => ({
+      kdsatker: row.KDSATKER || null,
+      kode_program: row.KODE_PROGRAM || null,
+      kode_kegiatan: row.KODE_KEGIATAN || null,
+      kode_output: row.KODE_OUTPUT || null,
+      kode_suboutput: row.KODE_SUBOUTPUT || null,
+      kode_komponen: row.KODE_KOMPONEN || null,
+      kode_subkomponen: row.KODE_SUBKOMPONEN || null,
+      kode_akun: row.KODE_AKUN || null,
+      uraian_item: row.URAIAN_ITEM || null,
+      volume: row.VOLKEG || row.VOL_KEG_1 || null,
+      satuan: row.SATKEG || row.SAT_KEG_1 || null,
+      harga_satuan: row.HARGASAT || null,
+      total: row.TOTAL || null
+    }))
     
     // Call IPC to import data
-    const result = await window.electronAPI.dipa.importCsv(dataToImport)
+    const result = await window.electronAPI.dipa.importCsv(normalizedData)
     
     console.log('DIPA import result:', result)
     
@@ -1346,6 +1456,11 @@ async function importDipaCsvData() {
       
       // Refresh the list from database
       await loadDipaList()
+      
+      // Load items from the imported revision
+      if (result.data?.revisi_id) {
+        await loadDipaItems(result.data.revisi_id)
+      }
       
       // Reset form
       resetDipaCsvImport()
@@ -1392,6 +1507,7 @@ async function loadAvailablePegawai() {
     
     if (result.success) {
       availablePegawai.value = result.data || []
+      pegawaiList.value = result.data || []  // Sync with table list
       console.log('✅ Loaded pegawai:', availablePegawai.value.length, 'records')
       if (availablePegawai.value.length > 0) {
         console.log('Sample pegawai:', availablePegawai.value.slice(0, 3))
@@ -1412,9 +1528,23 @@ async function loadAvailablePegawai() {
 async function loadSatkerList() {
   loadingSatker.value = true
   try {
+    if (availablePegawai.value.length === 0) {
+      await loadAvailablePegawai()
+    }
+
+    const pegawaiMap = new Map(
+      (availablePegawai.value || []).map(p => [p.nip, p.nama])
+    )
+
     const result = await window.electronAPI.satker.list({ limit: 100 })
     if (result.success) {
-      satkerList.value = result.data || []
+      satkerList.value = (result.data || []).map(satker => ({
+        ...satker,
+        kpa_nama: satker.kpa_nama || pegawaiMap.get(satker.kpa_nip) || null,
+        ppk_nama: satker.ppk_nama || pegawaiMap.get(satker.ppk_nip) || null,
+        ppspm_nama: satker.ppspm_nama || pegawaiMap.get(satker.ppspm_nip) || null,
+        bendahara_nama: satker.bendahara_nama || pegawaiMap.get(satker.bendahara_nip) || null
+      }))
     }
   } catch (error) {
     console.error('Failed to load satker:', error)
@@ -1569,6 +1699,46 @@ async function loadDipaList() {
   }
 }
 
+async function loadDipaItems(revisiId = null) {
+  try {
+    if (!window.electronAPI?.dipa?.itemsList) {
+      console.error('❌ DIPA items API not available')
+      return
+    }
+    
+    // If no revisiId specified, try to get from active revision
+    if (!revisiId && dipaList.value.length > 0) {
+      // Get first DIPA and its active revision
+      const firstDipa = dipaList.value[0]
+      const revisions = await window.electronAPI.dipa.revisiList(firstDipa.id)
+      if (revisions.success && revisions.data.length > 0) {
+        const activeRevision = revisions.data.find(r => r.is_active) || revisions.data[0]
+        revisiId = activeRevision.id
+      }
+    }
+    
+    if (!revisiId) {
+      console.warn('⚠️ No revisi ID available to load items')
+      dipaItems.value = []
+      return
+    }
+    
+    console.log('📥 Loading DIPA items for revisi:', revisiId)
+    const result = await window.electronAPI.dipa.itemsList({ revisiId })
+    
+    if (result.success) {
+      dipaItems.value = result.data || []
+      console.log('✅ Loaded', dipaItems.value.length, 'DIPA items')
+    } else {
+      console.error('❌ Failed to load DIPA items:', result.error)
+      dipaItems.value = []
+    }
+  } catch (error) {
+    console.error('Failed to load DIPA items:', error)
+    dipaItems.value = []
+  }
+}
+
 async function addDipa() {
   try {
     const data = {
@@ -1622,6 +1792,44 @@ async function deleteDipa(id) {
   }
 }
 
+async function cleanupDipaItems() {
+  try {
+    if (!window.electronAPI?.dipa?.cleanupItems) {
+      alert('❌ Fitur bersih item belum tersedia')
+      return
+    }
+
+    const revisiId = dipaItems.value[0]?.revisi_id || null
+    const result = await window.electronAPI.dipa.cleanupItems({ revisiId })
+
+    if (result.success) {
+      await loadDipaItems(revisiId)
+      alert(`✅ ${result.removed} item kosong dihapus`) 
+    } else {
+      alert(`❌ Gagal: ${result.error}`)
+    }
+  } catch (error) {
+    console.error('Error cleaning DIPA items:', error)
+    alert('Gagal menghapus item kosong')
+  }
+}
+
+function openDipaDetail(dipaId) {
+  console.log('Opening DIPA detail:', dipaId)
+  // Find the DIPA from the list
+  const dipa = dipaList.value.find(d => d.id === dipaId)
+  if (dipa) {
+    selectedDipaForImport.value = dipa
+    // Scroll to import section
+    setTimeout(() => {
+      const section = document.querySelector('[data-section="import-dipa-csv"]')
+      if (section) {
+        section.scrollIntoView({ behavior: 'smooth' })
+      }
+    }, 100)
+  }
+}
+
 // Debug handler
 function showDebug() {
   if (window.__DEBUG_PANEL) {
@@ -1653,29 +1861,41 @@ onMounted(async () => {
     alert('❌ CRITICAL: window.electronAPI.pegawai is undefined!')
     console.error('pegawai API is undefined in electronAPI')
   }
-  
-  // Get app version
-  try {
-    appVersion.value = await window.electronAPI.app.getVersion()
-  } catch (error) {
-    console.error('Failed to get version:', error)
-  }
 
   // Load requests
-  await loadRequests()
+  try {
+    await loadRequests()
+  } catch (error) {
+    console.error('Failed to load requests:', error)
+  }
 
   // Load master data for satker officials
-  console.log('onMounted: Loading pegawai data...')
-  await loadAvailablePegawai()
-  console.log('onMounted: Pegawai loaded, count:', availablePegawai.value.length)
+  try {
+    console.log('onMounted: Loading pegawai data...')
+    await loadAvailablePegawai()
+    console.log('onMounted: Pegawai loaded, count:', availablePegawai.value.length)
+  } catch (error) {
+    console.error('Failed to load pegawai:', error)
+  }
   
-  await loadSatkerList()
-  await loadDipaList()
+  try {
+    await loadSatkerList()
+  } catch (error) {
+    console.error('Failed to load satker:', error)
+  }
+  
+  try {
+    await loadDipaList()
+  } catch (error) {
+    console.error('Failed to load dipa:', error)
+  }
 })
+
 
 // Watch currentView to reload pegawai when Satker view is opened
 watch(currentView, async (newView, oldView) => {
   console.log('View changed:', oldView, '->', newView)
+  
   if (newView === 'master-satker') {
     console.log('Satker view opened! Current pegawai count:', availablePegawai.value.length)
     if (availablePegawai.value.length === 0) {
@@ -1685,5 +1905,80 @@ watch(currentView, async (newView, oldView) => {
       console.log('Pegawai already loaded:', availablePegawai.value.length, 'records')
     }
   }
+  
+  if (newView === 'master-dipa') {
+    console.log('DIPA view opened! Current items count:', dipaItems.value.length)
+    if (dipaItems.value.length === 0) {
+      console.log('No DIPA items loaded, loading now...')
+      await loadDipaItems()
+    } else {
+      console.log('DIPA items already loaded:', dipaItems.value.length, 'items')
+    }
+  }
+
+  if (newView === 'tier1') {
+    if (availablePegawai.value.length === 0) {
+      await loadAvailablePegawai()
+    }
+    if (dipaItems.value.length === 0) {
+      await loadDipaItems()
+    }
+  }
 })
 </script>
+
+<style scoped>
+.quick-action-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  background: white;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.quick-action-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.quick-action-card.lp-card:hover {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.quick-action-card.st-card:hover {
+  border-color: #10b981;
+  background: #ecfdf5;
+}
+
+.quick-action-card.tier-card:hover {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.quick-action-card .icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+}
+
+.quick-action-card .title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 4px 0;
+}
+
+.quick-action-card .desc {
+  font-size: 13px;
+  color: #64748b;
+  text-align: center;
+  margin: 0;
+}
+</style>

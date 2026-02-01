@@ -4,7 +4,7 @@
  * Displays status badge with color based on LP status
  */
 import { computed } from 'vue';
-import { LP_STATUS, LP_STATUS_LABELS, LP_STATUS_COLORS } from '../../stores/lembarPermintaanStore';
+import { LP_STATUS, LP_STATUS_LABEL, LP_STATUS_COLOR } from '../../stores/lembarPermintaanStore';
 
 const props = defineProps({
   status: {
@@ -23,9 +23,9 @@ const props = defineProps({
   }
 });
 
-const statusLabel = computed(() => LP_STATUS_LABELS[props.status] || props.status);
+const statusLabel = computed(() => LP_STATUS_LABEL[props.status] || props.status);
 
-const statusColor = computed(() => LP_STATUS_COLORS[props.status] || 'gray');
+const statusColor = computed(() => LP_STATUS_COLOR[props.status] || 'gray');
 
 const badgeClasses = computed(() => {
   const colorClasses = {

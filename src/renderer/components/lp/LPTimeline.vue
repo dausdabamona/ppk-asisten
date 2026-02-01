@@ -4,7 +4,7 @@
  * Timeline display for LP activity logs
  */
 import { computed } from 'vue';
-import { LP_STATUS_LABELS } from '../../stores/lembarPermintaanStore';
+import { LP_STATUS_LABEL } from '../../stores/lembarPermintaanStore';
 
 const props = defineProps({
   logs: {
@@ -100,7 +100,7 @@ const formatAction = (log) => {
   const actionLabels = {
     'CREATE': 'Membuat lembar permintaan',
     'UPDATE': 'Memperbarui data',
-    'STATUS_CHANGE': `Mengubah status ke ${LP_STATUS_LABELS[log.status_baru] || log.status_baru}`,
+    'STATUS_CHANGE': `Mengubah status ke ${LP_STATUS_LABEL[log.status_baru] || log.status_baru}`,
     'APPROVE': 'Menyetujui permintaan',
     'REJECT': 'Menolak permintaan',
     'CANCEL': 'Membatalkan permintaan',
@@ -175,13 +175,13 @@ const formatAction = (log) => {
                 class="mt-2 flex items-center text-sm"
               >
                 <span class="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-600">
-                  {{ LP_STATUS_LABELS[log.status_lama] || log.status_lama }}
+                  {{ LP_STATUS_LABEL[log.status_lama] || log.status_lama }}
                 </span>
                 <svg class="mx-2 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
                 </svg>
                 <span class="px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-600">
-                  {{ LP_STATUS_LABELS[log.status_baru] || log.status_baru }}
+                  {{ LP_STATUS_LABEL[log.status_baru] || log.status_baru }}
                 </span>
               </div>
 

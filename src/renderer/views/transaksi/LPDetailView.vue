@@ -5,7 +5,7 @@
  */
 import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import { useLembarPermintaanStore, LP_STATUS, LP_STATUS_LABELS, LP_STATUS_TRANSITIONS } from '../../stores/lembarPermintaanStore';
+import { useLembarPermintaanStore, LP_STATUS, LP_STATUS_LABEL, LP_STATUS_TRANSITIONS } from '../../stores/lembarPermintaanStore';
 import LPStatusBadge from '../../components/lp/LPStatusBadge.vue';
 import LPStatusProgress from '../../components/lp/LPStatusProgress.vue';
 import LPItemTable from '../../components/lp/LPItemTable.vue';
@@ -427,7 +427,7 @@ onMounted(() => {
     >
       <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">
-          Ubah Status ke {{ LP_STATUS_LABELS[statusAction] }}
+          Ubah Status ke {{ LP_STATUS_LABEL[statusAction] }}
         </h3>
 
         <div class="mb-4">

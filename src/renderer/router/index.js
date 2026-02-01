@@ -26,8 +26,29 @@ const SbmDetailView = () => import('../views/master/SbmDetailView.vue');
 // Transaction - Lembar Permintaan
 const LPListView = () => import('../views/transaksi/LPListView.vue');
 const LPFormView = () => import('../views/transaksi/LPFormView.vue');
+const LembarPermintaanFormView = () => import('../views/transaksi/LembarPermintaanFormView.vue');
 const LPDetailView = () => import('../views/transaksi/LPDetailView.vue');
 const LPProsesView = () => import('../views/transaksi/LPProsesView.vue');
+
+// Transaction - Surat Tugas
+const STListView = () => import('../views/STListView.vue');
+const STFormView = () => import('../views/STFormView.vue');
+const STDetailView = () => import('../views/STDetailView.vue');
+const STPertanggungjawabanView = () => import('../views/STPertanggungjawabanView.vue');
+
+// Transaction - Unified
+const TransaksiListView = () => import('../views/transaksi/TransaksiListView.vue');
+
+// Transaction - Tier Requests
+const Tier1FormView = () => import('../views/transaksi/Tier1FormView.vue');
+const Tier2FormView = () => import('../views/transaksi/Tier2FormView.vue');
+const Tier3FormView = () => import('../views/transaksi/Tier3FormView.vue');
+
+// Transaction - Formulir Permintaan
+const FormulirPermintaanView = () => import('../views/transaksi/FormulirPermintaanView.vue');
+
+// Transaction - Procurement Workflow
+const ProcurementTimeline = () => import('../views/transaksi/ProcurementTimeline.vue');
 
 // Transaction - Legacy
 const RequestList = () => import('../views/RequestList.vue');
@@ -168,6 +189,12 @@ const routes = [
         meta: { title: 'Lembar Permintaan', icon: 'document', parent: 'Transaksi' }
       },
       {
+        path: 'transaksi/lp/tambah',
+        name: 'LPTambah',
+        component: LembarPermintaanFormView,
+        meta: { title: 'Buat Lembar Permintaan', parent: 'Transaksi' }
+      },
+      {
         path: 'transaksi/lp/barang/tambah',
         name: 'LPBarangTambah',
         component: LPFormView,
@@ -223,13 +250,89 @@ const routes = [
         props: route => ({ id: route.params.id, step: 'pembayaran' }),
         meta: { title: 'Pembayaran', parent: 'Transaksi' }
       },
+      // Surat Tugas Routes
+      {
+        path: 'transaksi/st',
+        name: 'STList',
+        component: STListView,
+        meta: { title: 'Surat Tugas', icon: 'document-text', parent: 'Transaksi' }
+      },
+      {
+        path: 'transaksi/st/tambah',
+        name: 'STTambah',
+        component: STFormView,
+        meta: { title: 'Tambah Surat Tugas', parent: 'Transaksi' }
+      },
+      {
+        path: 'transaksi/st/:id',
+        name: 'STDetail',
+        component: STDetailView,
+        props: true,
+        meta: { title: 'Detail Surat Tugas', parent: 'Transaksi' }
+      },
+      {
+        path: 'transaksi/st/:id/edit',
+        name: 'STEdit',
+        component: STFormView,
+        props: true,
+        meta: { title: 'Edit Surat Tugas', parent: 'Transaksi' }
+      },
+      {
+        path: 'transaksi/st/:id/pertanggungjawaban',
+        name: 'STPertanggungjawaban',
+        component: STPertanggungjawabanView,
+        props: true,
+        meta: { title: 'Pertanggungjawaban', parent: 'Transaksi' }
+      },
 
+      // Unified Transaction List
+      {
+        path: 'transaksi',
+        name: 'TransaksiList',
+        component: TransaksiListView,
+        meta: { title: 'Semua Transaksi', icon: 'clipboard-list', parent: 'Transaksi' }
+      },
+
+      // Tier Request Routes
+      {
+        path: 'transaksi/tier1/tambah',
+        name: 'Tier1Tambah',
+        component: Tier1FormView,
+        meta: { title: 'Permintaan Tier 1', parent: 'Transaksi' }
+      },
+      {
+        path: 'transaksi/tier2/tambah',
+        name: 'Tier2Tambah',
+        component: Tier2FormView,
+        meta: { title: 'Permintaan Tier 2', parent: 'Transaksi' }
+      },
+      {
+        path: 'transaksi/tier3/tambah',
+        name: 'Tier3Tambah',
+        component: Tier3FormView,
+        meta: { title: 'Permintaan Tier 3', parent: 'Transaksi' }
+      },
+
+      // Procurement Workflow Route
+      {
+        path: 'transaksi/procurement/:lpId',
+        name: 'ProcurementTimeline',
+        component: ProcurementTimeline,
+        props: true,
+        meta: { title: 'Workflow Pengadaan', parent: 'Transaksi' }
+      },
       // Legacy Transaction Routes
       {
         path: 'requests',
         name: 'RequestList',
         component: RequestList,
         meta: { title: 'Daftar Permintaan', icon: 'document', parent: 'Transaksi' }
+      },
+      {
+        path: 'requests/formulir',
+        name: 'FormulirPermintaan',
+        component: FormulirPermintaanView,
+        meta: { title: 'Formulir Permintaan', parent: 'Transaksi' }
       },
       {
         path: 'requests/create',

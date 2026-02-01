@@ -22,11 +22,16 @@ const saving = ref(false);
 // Computed
 const yearOptions = computed(() => {
   const currentYear = new Date().getFullYear();
-  const years = [];
+  const yearsSet = new Set();
   for (let y = currentYear + 1; y >= currentYear - 5; y--) {
-    years.push({ value: y, label: `Tahun Anggaran ${y}` });
+    yearsSet.add(y);
   }
-  return years;
+  dipaStore.dipaList.forEach(d => {
+    if (d?.tahun_anggaran) yearsSet.add(Number(d.tahun_anggaran));
+  });
+  return Array.from(yearsSet)
+    .sort((a, b) => b - a)
+    .map(y => ({ value: y, label: `Tahun Anggaran ${y}` }));
 });
 
 const currentYearDipa = computed(() => {
@@ -103,6 +108,19 @@ const goToBrowse = (dipa) => {
 watch(selectedYear, () => {
   // Year changed, reload if needed
 });
+
+watch(
+  () => dipaStore.dipaList,
+  (list) => {
+    if (!list || list.length === 0) return;
+    const years = list.map(d => Number(d.tahun_anggaran)).filter(Boolean);
+    const latest = Math.max(...years);
+    if (!years.includes(selectedYear.value)) {
+      selectedYear.value = latest;
+    }
+  },
+  { immediate: true }
+);
 
 onMounted(async () => {
   await loadData();

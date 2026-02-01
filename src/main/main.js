@@ -74,8 +74,6 @@ function createWindow() {
     console.log('✅ Preload script found at:', preloadPath);
     mainLogger.info('Preload script found', { preloadPath });
   }
-
-  const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
   
   mainWindow = new BrowserWindow({
     width: 1400,
@@ -168,9 +166,9 @@ function createWindow() {
 
   // Load app
   if (isDev) {
-    // Try different Vite ports
-    const vitePort = process.env.VITE_PORT || 5173;
-    const viteUrl = `http://localhost:${vitePort}`;
+    // Try different Vite ports - check which one is running
+    let vitePort = 5174; // Try 5174 first (from vite.config.js)
+    let viteUrl = `http://localhost:${vitePort}`;
     console.log('Loading Vite dev server from:', viteUrl);
     mainWindow.loadURL(viteUrl);
     mainWindow.webContents.openDevTools();
@@ -205,9 +203,6 @@ function initializeDatabase() {
   try {
     mainLogger.info('Initializing database');
     database = new PPKDatabase();
-
-    // Initialize all API modules with database
-    initializeApis(database);
 
     // Initialize class-based APIs (they register their own IPC handlers)
     satkerApi = new SatkerApi(database.db);

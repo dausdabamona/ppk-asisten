@@ -17,6 +17,9 @@ class DipaApi {
     ipcMain.handle('dipa:get', (_, id) => this.getDipaById(id));
     ipcMain.handle('dipa:create', (_, data) => this.createDipa(data));
     ipcMain.handle('dipa:update', (_, { id, data }) => this.updateDipa(id, data));
+    ipcMain.handle('dipa:delete', (_, id) => this.deleteDipa(id));
+    ipcMain.handle('dipa:import-csv', (_, csvContent) => this.importFromCSV(csvContent));
+    ipcMain.handle('dipa:export-csv', (_, filters) => this.exportToCSV(filters));
 
     // Revisi
     ipcMain.handle('dipa:revisi:list', (_, dipaId) => this.getRevisiList(dipaId));
@@ -151,6 +154,120 @@ class DipaApi {
     } catch (error) {
       console.error('Error updating DIPA:', error);
       throw error;
+    }
+  }
+
+  deleteDipa(id) {
+    try {
+      const stmt = this.db.prepare('DELETE FROM dipa WHERE id = ?');
+      stmt.run(id);
+      return { success: true, message: 'DIPA deleted' };
+    } catch (error) {
+      console.error('Error deleting DIPA:', error);
+      throw error;
+    }
+  }
+
+  importFromCSV(csvContent) {
+    try {
+      // Parse CSV content
+      const rows = this.parseCSV(csvContent);
+      
+      if (!rows || rows.length === 0) {
+        return { success: true, data: [], message: 'Tidak ada data untuk di-import' };
+      }
+
+      const results = {
+        success: 0,
+        failed: 0,
+        errors: [],
+        inserted: []
+      };
+
+      // Use transaction for batch insert
+      const insertStmt = this.db.prepare(`
+        INSERT OR IGNORE INTO dipa (
+          id, tahun_anggaran, nomor_dipa, tanggal_dipa,
+          kdsatker, kode_program, kode_kegiatan, kode_output,
+          kode_suboutput, kode_komponen, kode_subkomponen,
+          kode_akun, uraian_item, volume, satuan, 
+          harga_satuan, total
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+
+      const transaction = this.db.transaction((rows) => {
+        for (const row of rows) {
+          try {
+            const { v4: uuidv4 } = require('uuid');
+            insertStmt.run(
+              uuidv4(),
+              row.tahun_anggaran || new Date().getFullYear(),
+              row.nomor_dipa || null,
+              row.tanggal_dipa || null,
+              row.kdsatker || row.kode_satker || null,
+              row.kode_program || null,
+              row.kode_kegiatan || null,
+              row.kode_output || null,
+              row.kode_suboutput || null,
+              row.kode_komponen || null,
+              row.kode_subkomponen || null,
+              row.kode_akun || null,
+              row.uraian_item || null,
+              parseFloat(row.volume) || 0,
+              row.satuan || null,
+              parseFloat(row.harga_satuan) || 0,
+              parseFloat(row.total) || 0
+            );
+            results.success++;
+            results.inserted.push(row);
+          } catch (error) {
+            results.failed++;
+            results.errors.push(`Row error: ${error.message}`);
+          }
+        }
+      });
+
+      transaction(rows);
+
+      console.log(`DIPA CSV Import: ${results.success} inserted, ${results.failed} failed`);
+      return { success: true, data: results };
+    } catch (error) {
+      console.error('Error importing DIPA CSV:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  exportToCSV(filters = {}) {
+    try {
+      const result = this.getDipaList(filters);
+      
+      if (!result.success || !result.data || result.data.length === 0) {
+        return { success: true, data: '' };
+      }
+
+      const rows = result.data;
+      // Simple CSV export with basic columns
+      const headers = [
+        'tahun_anggaran', 'nomor_dipa', 'kdsatker', 
+        'kode_program', 'kode_kegiatan', 'uraian_item', 
+        'volume', 'satuan', 'harga_satuan', 'total'
+      ];
+
+      const csvLines = [headers.map(h => `"${h}"`).join(',')];
+
+      for (const row of rows) {
+        const line = headers.map(h => {
+          const value = row[h];
+          if (value === null || value === undefined) return '""';
+          return `"${String(value).replace(/"/g, '""')}"`;
+        }).join(',');
+        csvLines.push(line);
+      }
+
+      return { success: true, data: csvLines.join('\n') };
+    } catch (error) {
+      console.error('Error exporting DIPA CSV:', error);
+      return { success: false, error: error.message };
     }
   }
 

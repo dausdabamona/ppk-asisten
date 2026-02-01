@@ -4,7 +4,7 @@
  * Visual step indicator for LP status progress
  */
 import { computed } from 'vue';
-import { LP_STATUS, LP_STATUS_LABELS, LP_STATUS_COLORS } from '../../stores/lembarPermintaanStore';
+import { LP_STATUS, LP_STATUS_LABEL, LP_STATUS_COLOR } from '../../stores/lembarPermintaanStore';
 
 const props = defineProps({
   status: {
@@ -133,7 +133,7 @@ const getStepIcon = (index) => {
               getStepStatus(index) === 'current' ? 'text-blue-600 font-semibold' : 'text-gray-500'
             ]"
           >
-            {{ LP_STATUS_LABELS[step] }}
+            {{ LP_STATUS_LABEL[step] }}
           </span>
         </div>
 
@@ -148,7 +148,7 @@ const getStepIcon = (index) => {
     <!-- Compact mode: show current status label below -->
     <div v-if="compact && !isCancelled" class="mt-2 text-center">
       <span class="text-sm font-medium text-gray-700">
-        {{ LP_STATUS_LABELS[status] }}
+        {{ LP_STATUS_LABEL[status] }}
       </span>
     </div>
   </div>
