@@ -113,6 +113,40 @@ contextBridge.exposeInMainWorld('electronAPI', {
     lookupTransport: (params) => ipcRenderer.invoke('sbm:lookup:transport', params)
   },
 
+  // ==================== Lembar Permintaan API ====================
+  lp: {
+    // LP CRUD
+    list: (params) => ipcRenderer.invoke('lp:list', params),
+    get: (id) => ipcRenderer.invoke('lp:get', id),
+    create: (data) => ipcRenderer.invoke('lp:create', data),
+    update: (id, data) => ipcRenderer.invoke('lp:update', { id, data }),
+    delete: (id) => ipcRenderer.invoke('lp:delete', id),
+
+    // Status management
+    submit: (id) => ipcRenderer.invoke('lp:submit', id),
+    changeStatus: (id, status, keterangan) => ipcRenderer.invoke('lp:changeStatus', { id, status, keterangan }),
+    getStats: (params) => ipcRenderer.invoke('lp:stats', params),
+
+    // Items
+    itemsList: (lpId) => ipcRenderer.invoke('lp:items:list', lpId),
+    itemsCreate: (lpId, data) => ipcRenderer.invoke('lp:items:create', { lpId, data }),
+    itemsUpdate: (id, data) => ipcRenderer.invoke('lp:items:update', { id, data }),
+    itemsDelete: (id) => ipcRenderer.invoke('lp:items:delete', id),
+
+    // Logs
+    logsList: (lpId) => ipcRenderer.invoke('lp:logs:list', lpId),
+    logsCreate: (lpId, data) => ipcRenderer.invoke('lp:logs:create', { lpId, data }),
+
+    // Dokumen
+    dokumenList: (lpId) => ipcRenderer.invoke('lp:dokumen:list', lpId),
+    dokumenCreate: (lpId, data) => ipcRenderer.invoke('lp:dokumen:create', { lpId, data }),
+    dokumenDelete: (id) => ipcRenderer.invoke('lp:dokumen:delete', id),
+
+    // Print
+    print: (id, options) => ipcRenderer.invoke('lp:print', { id, options }),
+    generateNomor: (jenis, tahun) => ipcRenderer.invoke('lp:generateNomor', { jenis, tahun })
+  },
+
   // ==================== Request API ====================
   request: {
     create: (data) => ipcRenderer.invoke('request:create', data),
@@ -313,4 +347,4 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
 // Log that preload is loaded
 console.log('Preload script loaded successfully');
-console.log('Available APIs: satker, pejabat, unitKerja, pegawai, supplier, dipa, sbm, request, vendor, contract, payment, document, report, user, db, app, dialog, window, log');
+console.log('Available APIs: satker, pejabat, unitKerja, pegawai, supplier, dipa, sbm, lp, request, vendor, contract, payment, document, report, user, db, app, dialog, window, log');
