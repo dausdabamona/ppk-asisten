@@ -10,7 +10,7 @@
  */
 
 // Database version for migrations
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 
 // ==================== MASTER DATA TABLES ====================
 
@@ -291,6 +291,106 @@ const SBM_HONORARIUM_TABLE = `
   );
 `;
 
+// ==================== LEMBAR PERMINTAAN TABLES ====================
+
+const LEMBAR_PERMINTAAN_TABLE = `
+  CREATE TABLE IF NOT EXISTS lembar_permintaan (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nomor TEXT UNIQUE NOT NULL,
+    jenis TEXT NOT NULL CHECK(jenis IN ('BARANG', 'JASA', 'PJLP', 'KEGIATAN')),
+    tanggal_dibuat DATE NOT NULL,
+    dibuat_oleh_id INTEGER REFERENCES pegawai(id),
+    unit_pengusul_id INTEGER REFERENCES unit_kerja(id),
+    nama_pengadaan TEXT NOT NULL,
+    uraian TEXT,
+    justifikasi TEXT,
+    lokasi_pelaksanaan TEXT,
+    target_waktu_mulai DATE,
+    target_waktu_selesai DATE,
+    dipa_item_id INTEGER REFERENCES dipa_item(id),
+    total_nilai REAL DEFAULT 0,
+    kategori_tier TEXT CHECK(kategori_tier IN ('TIER1', 'TIER2', 'TIER3')),
+    metode_pengadaan TEXT,
+    status TEXT DEFAULT 'DRAFT' CHECK(status IN ('DRAFT', 'DIAJUKAN', 'DISETUJUI', 'PROSES_PENGADAAN', 'KONTRAK', 'SERAH_TERIMA', 'PEMBAYARAN', 'SELESAI', 'BATAL')),
+    supplier_id INTEGER REFERENCES supplier(id),
+    nomor_kontrak TEXT,
+    tanggal_kontrak DATE,
+    jangka_waktu_kontrak INTEGER,
+    tanggal_mulai_kontrak DATE,
+    tanggal_selesai_kontrak DATE,
+    nilai_kontrak REAL,
+    tanggal_serah_terima DATE,
+    nomor_bast TEXT,
+    kondisi_serah_terima TEXT CHECK(kondisi_serah_terima IN ('BAIK', 'ADA_CATATAN', NULL)),
+    catatan_serah_terima TEXT,
+    nilai_tagihan REAL,
+    nilai_ppn REAL DEFAULT 0,
+    nilai_pph22 REAL DEFAULT 0,
+    nilai_pph21 REAL DEFAULT 0,
+    nilai_bersih REAL,
+    nomor_kwitansi TEXT,
+    nomor_spp TEXT,
+    nomor_spm TEXT,
+    tanggal_bayar DATE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+`;
+
+const LEMBAR_PERMINTAAN_ITEM_TABLE = `
+  CREATE TABLE IF NOT EXISTS lembar_permintaan_item (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    lembar_permintaan_id INTEGER REFERENCES lembar_permintaan(id) ON DELETE CASCADE,
+    urutan INTEGER,
+    uraian TEXT NOT NULL,
+    spesifikasi TEXT,
+    volume REAL NOT NULL,
+    satuan TEXT NOT NULL,
+    harga_satuan REAL NOT NULL,
+    jumlah REAL NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+`;
+
+const LEMBAR_PERMINTAAN_LOG_TABLE = `
+  CREATE TABLE IF NOT EXISTS lembar_permintaan_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    lembar_permintaan_id INTEGER REFERENCES lembar_permintaan(id) ON DELETE CASCADE,
+    versi TEXT,
+    tanggal DATETIME DEFAULT CURRENT_TIMESTAMP,
+    user_id INTEGER REFERENCES pegawai(id),
+    user_nama TEXT,
+    jenis_perubahan TEXT CHECK(jenis_perubahan IN ('DIBUAT', 'STATUS_BERUBAH', 'DATA_BERUBAH', 'ITEM_DITAMBAH', 'ITEM_DIHAPUS', 'DOKUMEN_DIGENERATE', 'LAMPIRAN_DITAMBAH', 'LAMPIRAN_DIHAPUS')),
+    keterangan TEXT,
+    data_sebelum TEXT,
+    data_sesudah TEXT
+  );
+`;
+
+const LEMBAR_PERMINTAAN_DOKUMEN_TABLE = `
+  CREATE TABLE IF NOT EXISTS lembar_permintaan_dokumen (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    lembar_permintaan_id INTEGER REFERENCES lembar_permintaan(id) ON DELETE CASCADE,
+    jenis_dokumen TEXT NOT NULL,
+    nomor_dokumen TEXT,
+    tanggal_dokumen DATE,
+    file_path TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+`;
+
+const LEMBAR_PERMINTAAN_LAMPIRAN_TABLE = `
+  CREATE TABLE IF NOT EXISTS lembar_permintaan_lampiran (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    lembar_permintaan_id INTEGER REFERENCES lembar_permintaan(id) ON DELETE CASCADE,
+    nama_file TEXT NOT NULL,
+    jenis_lampiran TEXT CHECK(jenis_lampiran IN ('NOTA_DINAS', 'SPESIFIKASI_TEKNIS', 'RAB', 'PENAWARAN', 'KONTRAK', 'BAST', 'FOTO', 'LAINNYA')),
+    file_path TEXT NOT NULL,
+    ukuran INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+`;
+
 // ==================== LEGACY TABLES (from previous schema) ====================
 
 const LEGACY_TABLES = `
@@ -513,6 +613,19 @@ const INDEXES_SQL = `
   CREATE INDEX IF NOT EXISTS idx_sbm_transport_tahun ON sbm_transport(sbm_tahun_id);
   CREATE INDEX IF NOT EXISTS idx_sbm_honorarium_tahun ON sbm_honorarium(sbm_tahun_id);
 
+  -- Lembar Permintaan indexes
+  CREATE INDEX IF NOT EXISTS idx_lp_nomor ON lembar_permintaan(nomor);
+  CREATE INDEX IF NOT EXISTS idx_lp_jenis ON lembar_permintaan(jenis);
+  CREATE INDEX IF NOT EXISTS idx_lp_status ON lembar_permintaan(status);
+  CREATE INDEX IF NOT EXISTS idx_lp_tanggal ON lembar_permintaan(tanggal_dibuat);
+  CREATE INDEX IF NOT EXISTS idx_lp_unit ON lembar_permintaan(unit_pengusul_id);
+  CREATE INDEX IF NOT EXISTS idx_lp_supplier ON lembar_permintaan(supplier_id);
+  CREATE INDEX IF NOT EXISTS idx_lp_dipa_item ON lembar_permintaan(dipa_item_id);
+  CREATE INDEX IF NOT EXISTS idx_lp_item_lp ON lembar_permintaan_item(lembar_permintaan_id);
+  CREATE INDEX IF NOT EXISTS idx_lp_log_lp ON lembar_permintaan_log(lembar_permintaan_id);
+  CREATE INDEX IF NOT EXISTS idx_lp_dokumen_lp ON lembar_permintaan_dokumen(lembar_permintaan_id);
+  CREATE INDEX IF NOT EXISTS idx_lp_lampiran_lp ON lembar_permintaan_lampiran(lembar_permintaan_id);
+
   -- Legacy indexes
   CREATE INDEX IF NOT EXISTS idx_requests_status ON procurement_requests(status);
   CREATE INDEX IF NOT EXISTS idx_requests_tier ON procurement_requests(tier);
@@ -587,6 +700,13 @@ const TRIGGERS_SQL = `
   AFTER UPDATE ON dipa
   BEGIN
     UPDATE dipa SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+  END;
+
+  -- Auto-update updated_at for lembar_permintaan
+  CREATE TRIGGER IF NOT EXISTS update_lembar_permintaan_timestamp
+  AFTER UPDATE ON lembar_permintaan
+  BEGIN
+    UPDATE lembar_permintaan SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
   END;
 
   -- Trigger: Validate tier1 request value (< 10 million)
@@ -706,6 +826,11 @@ const SCHEMA_SQL = [
   SBM_UANG_HARIAN_TABLE,
   SBM_TRANSPORT_TABLE,
   SBM_HONORARIUM_TABLE,
+  LEMBAR_PERMINTAAN_TABLE,
+  LEMBAR_PERMINTAAN_ITEM_TABLE,
+  LEMBAR_PERMINTAAN_LOG_TABLE,
+  LEMBAR_PERMINTAAN_DOKUMEN_TABLE,
+  LEMBAR_PERMINTAAN_LAMPIRAN_TABLE,
   LEGACY_TABLES
 ].join('\n');
 
@@ -728,6 +853,11 @@ module.exports = {
     SBM_TAHUN_TABLE,
     SBM_UANG_HARIAN_TABLE,
     SBM_TRANSPORT_TABLE,
-    SBM_HONORARIUM_TABLE
+    SBM_HONORARIUM_TABLE,
+    LEMBAR_PERMINTAAN_TABLE,
+    LEMBAR_PERMINTAAN_ITEM_TABLE,
+    LEMBAR_PERMINTAAN_LOG_TABLE,
+    LEMBAR_PERMINTAAN_DOKUMEN_TABLE,
+    LEMBAR_PERMINTAAN_LAMPIRAN_TABLE
   }
 };

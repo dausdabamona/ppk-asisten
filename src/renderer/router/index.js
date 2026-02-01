@@ -23,7 +23,13 @@ const DipaItemBrowseView = () => import('../views/master/DipaItemBrowseView.vue'
 const SbmListView = () => import('../views/master/SbmListView.vue');
 const SbmDetailView = () => import('../views/master/SbmDetailView.vue');
 
-// Transaction
+// Transaction - Lembar Permintaan
+const LPListView = () => import('../views/transaksi/LPListView.vue');
+const LPFormView = () => import('../views/transaksi/LPFormView.vue');
+const LPDetailView = () => import('../views/transaksi/LPDetailView.vue');
+const LPProsesView = () => import('../views/transaksi/LPProsesView.vue');
+
+// Transaction - Legacy
 const RequestList = () => import('../views/RequestList.vue');
 const RequestDetail = () => import('../views/RequestDetail.vue');
 const RequestCreate = () => import('../views/RequestCreate.vue');
@@ -154,7 +160,71 @@ const routes = [
         meta: { title: 'SBM Honorarium', parent: 'Master Data' }
       },
 
-      // Transaction Routes
+      // Lembar Permintaan Routes
+      {
+        path: 'transaksi/lp',
+        name: 'LPList',
+        component: LPListView,
+        meta: { title: 'Lembar Permintaan', icon: 'document', parent: 'Transaksi' }
+      },
+      {
+        path: 'transaksi/lp/barang/tambah',
+        name: 'LPBarangTambah',
+        component: LPFormView,
+        props: { jenis: 'BARANG' },
+        meta: { title: 'Tambah LP Barang', parent: 'Transaksi' }
+      },
+      {
+        path: 'transaksi/lp/jasa/tambah',
+        name: 'LPJasaTambah',
+        component: LPFormView,
+        props: { jenis: 'JASA' },
+        meta: { title: 'Tambah LP Jasa', parent: 'Transaksi' }
+      },
+      {
+        path: 'transaksi/lp/:id',
+        name: 'LPDetail',
+        component: LPDetailView,
+        props: true,
+        meta: { title: 'Detail Lembar Permintaan', parent: 'Transaksi' }
+      },
+      {
+        path: 'transaksi/lp/:id/edit',
+        name: 'LPEdit',
+        component: LPFormView,
+        props: true,
+        meta: { title: 'Edit Lembar Permintaan', parent: 'Transaksi' }
+      },
+      {
+        path: 'transaksi/lp/:id/proses',
+        name: 'LPProses',
+        component: LPProsesView,
+        props: route => ({ id: route.params.id, step: 'penyedia' }),
+        meta: { title: 'Proses Pengadaan', parent: 'Transaksi' }
+      },
+      {
+        path: 'transaksi/lp/:id/kontrak',
+        name: 'LPKontrak',
+        component: LPProsesView,
+        props: route => ({ id: route.params.id, step: 'kontrak' }),
+        meta: { title: 'Input Kontrak', parent: 'Transaksi' }
+      },
+      {
+        path: 'transaksi/lp/:id/serah-terima',
+        name: 'LPSerahTerima',
+        component: LPProsesView,
+        props: route => ({ id: route.params.id, step: 'serah-terima' }),
+        meta: { title: 'Serah Terima', parent: 'Transaksi' }
+      },
+      {
+        path: 'transaksi/lp/:id/pembayaran',
+        name: 'LPPembayaran',
+        component: LPProsesView,
+        props: route => ({ id: route.params.id, step: 'pembayaran' }),
+        meta: { title: 'Pembayaran', parent: 'Transaksi' }
+      },
+
+      // Legacy Transaction Routes
       {
         path: 'requests',
         name: 'RequestList',
