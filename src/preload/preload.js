@@ -5,13 +5,31 @@
  * All IPC communication goes through here
  */
 
-const { contextBridge, ipcRenderer } = require('electron');
+// Immediate debug log
+console.log('🚀 PRELOAD SCRIPT STARTING...');
 
-// Helper to create IPC invoke wrapper
-const invoke = (channel) => (...args) => ipcRenderer.invoke(channel, ...args);
+try {
+  const { contextBridge, ipcRenderer } = require('electron');
 
-// Expose protected methods to renderer process
-contextBridge.exposeInMainWorld('electronAPI', {
+  console.log('✅ Electron modules loaded');
+  console.log('contextBridge:', typeof contextBridge);
+  console.log('ipcRenderer:', typeof ipcRenderer);
+
+  if (!contextBridge) {
+    throw new Error('contextBridge is not available!');
+  }
+  
+  if (!ipcRenderer) {
+    throw new Error('ipcRenderer is not available!');
+  }
+
+  // Helper to create IPC invoke wrapper
+  const invoke = (channel) => (...args) => ipcRenderer.invoke(channel, ...args);
+
+  console.log('🔧 Starting to expose electronAPI...');
+
+  // Expose protected methods to renderer process
+  contextBridge.exposeInMainWorld('electronAPI', {
   // ==================== Request API ====================
   request: {
     create: (data) => ipcRenderer.invoke('request:create', data),
@@ -145,6 +163,44 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getStats: () => ipcRenderer.invoke('user:getStats')
   },
 
+  // ==================== Pegawai (Employee) API ====================
+  pegawai: {
+    list: (options) => ipcRenderer.invoke('pegawai:list', options),
+    get: (id) => ipcRenderer.invoke('pegawai:get', id),
+    getByNip: (nip) => ipcRenderer.invoke('pegawai:get-by-nip', nip),
+    create: (data) => ipcRenderer.invoke('pegawai:create', data),
+    update: (id, data) => ipcRenderer.invoke('pegawai:update', { id, data }),
+    delete: (id) => ipcRenderer.invoke('pegawai:delete', id),
+    search: (query) => ipcRenderer.invoke('pegawai:search', query),
+    importCsv: (csvData) => ipcRenderer.invoke('pegawai:import-csv', csvData),
+    exportCsv: () => ipcRenderer.invoke('pegawai:export-csv')
+  },
+
+  // ==================== Satker (Work Unit) API ====================
+  satker: {
+    list: (options) => ipcRenderer.invoke('satker:list', options),
+    get: (id) => ipcRenderer.invoke('satker:get', id),
+    getByKode: (kode) => ipcRenderer.invoke('satker:get-by-kode', kode),
+    create: (data) => ipcRenderer.invoke('satker:create', data),
+    update: (id, data) => ipcRenderer.invoke('satker:update', { id, data }),
+    delete: (id) => ipcRenderer.invoke('satker:delete', id),
+    search: (query) => ipcRenderer.invoke('satker:search', query),
+    getAvailablePegawai: () => ipcRenderer.invoke('satker:get-available-pegawai'),
+    setOfficial: (satker_id, officialType, nip) => ipcRenderer.invoke('satker:set-official', { satker_id, officialType, nip })
+  },
+
+  // ==================== DIPA (Budget) API ====================
+  dipa: {
+    list: (options) => ipcRenderer.invoke('dipa:list', options),
+    get: (id) => ipcRenderer.invoke('dipa:get', id),
+    getSummary: (tahun) => ipcRenderer.invoke('dipa:get-summary', tahun),
+    create: (data) => ipcRenderer.invoke('dipa:create', data),
+    update: (id, data) => ipcRenderer.invoke('dipa:update', { id, data }),
+    delete: (id) => ipcRenderer.invoke('dipa:delete', id),
+    importCsv: (csvData) => ipcRenderer.invoke('dipa:import-csv', csvData),
+    exportCsv: (filters) => ipcRenderer.invoke('dipa:export-csv', filters)
+  },
+
   // ==================== Legacy DB API (backward compatibility) ====================
   db: {
     createRequest: (data) => ipcRenderer.invoke('db:createRequest', data),
@@ -207,8 +263,29 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getFiles: () => ipcRenderer.invoke('log:getFiles'),
     getContents: (type, lines) => ipcRenderer.invoke('log:getContents', { type, lines })
   }
-});
+  });
 
-// Log that preload is loaded
-console.log('Preload script loaded successfully');
-console.log('Available APIs: request, vendor, contract, payment, document, report, user, db, app, dialog, window, log');
+  console.log('✅ contextBridge.exposeInMainWorld completed successfully');
+  console.log('✅ electronAPI should now be available in renderer');
+
+} catch (error) {
+  console.error('❌❌❌ CRITICAL ERROR IN PRELOAD SCRIPT ❌❌❌');
+  console.error('Error:', error);
+  console.error('Stack:', error.stack);
+  
+  // Try to expose error info to renderer
+  try {
+    if (typeof window !== 'undefined') {
+      window.PRELOAD_ERROR = {
+        message: error.message,
+        stack: error.stack
+      };
+    }
+  } catch (e) {
+    console.error('Failed to expose preload error:', e);
+  }
+}
+
+// Log that preload is complete
+console.log('=== PRELOAD SCRIPT LOADED ===');
+console.log('Available APIs: request, vendor, contract, payment, document, report, user, pegawai, satker, dipa, db, app, dialog, window, log');

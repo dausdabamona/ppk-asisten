@@ -12,6 +12,15 @@ const paymentApi = require('./paymentApi');
 const documentApi = require('./documentApi');
 const reportApi = require('./reportApi');
 const userApi = require('./userApi');
+const suratTugasApi = require('./suratTugasApi');
+const PegawaiApi = require('./pegawaiApi');
+const SatkerApi = require('./satkerApi');
+const DipaApi = require('./dipaApi');
+
+// API instances (pegawaiApi, satkerApi, and dipaApi will be instantiated in initializeApis)
+let pegawaiApiInstance = null;
+let satkerApiInstance = null;
+let dipaApiInstance = null;
 
 // All API instances
 const apis = {
@@ -21,15 +30,24 @@ const apis = {
   payment: paymentApi,
   document: documentApi,
   report: reportApi,
-  user: userApi
+  user: userApi,
+  suratTugas: suratTugasApi
 };
 
 /**
  * Initialize all APIs with database instance
  */
 function initializeApis(database) {
+  // Initialize class-based APIs
+  pegawaiApiInstance = new PegawaiApi(database);
+  satkerApiInstance = new SatkerApi(database);
+  dipaApiInstance = new DipaApi(database);
+  
+  // Initialize other function-based APIs
   for (const api of Object.values(apis)) {
-    api.setDatabase(database);
+    if (api.setDatabase && typeof api.setDatabase === 'function') {
+      api.setDatabase(database);
+    }
   }
 }
 
@@ -154,7 +172,44 @@ const routes = {
   'user:getByRole': (role) => userApi.getByRole(role),
   'user:getByUnit': (unit) => userApi.getByUnit(unit),
   'user:getActivity': ({ id, limit }) => userApi.getActivity(id, limit),
-  'user:getStats': () => userApi.getStats()
+  'user:getStats': () => userApi.getStats(),
+
+  // Surat Tugas routes
+  'st:list': (filters) => suratTugasApi.getList(filters),
+  'st:get': (id) => suratTugasApi.getById(id),
+  'st:create': (data) => suratTugasApi.create(data),
+  'st:update': ({ id, data }) => suratTugasApi.update(id, data),
+  'st:delete': (id) => suratTugasApi.delete(id),
+  'st:nomor:generate': (jenis) => suratTugasApi.generateNomor(jenis),
+
+  // Surat Tugas Pelaksana routes
+  'st:pelaksana:list': (stId) => suratTugasApi.getPelaksanaList(stId),
+  'st:pelaksana:add': ({ stId, data }) => suratTugasApi.addPelaksana(stId, data),
+  'st:pelaksana:update': ({ id, data }) => suratTugasApi.updatePelaksana(id, data),
+  'st:pelaksana:delete': (id) => suratTugasApi.deletePelaksana(id),
+
+  // Surat Tugas Rute routes
+  'st:rute:list': (stId) => suratTugasApi.getRuteList(stId),
+  'st:rute:add': ({ stId, data }) => suratTugasApi.addRute(stId, data),
+  'st:rute:update': ({ id, data }) => suratTugasApi.updateRute(id, data),
+  'st:rute:delete': (id) => suratTugasApi.deleteRute(id),
+
+  // Surat Tugas Biaya routes
+  'st:biaya:calculate': ({ stId, pelaksanaList, sbmData }) => suratTugasApi.calculateBiaya(stId, pelaksanaList, sbmData),
+  'st:biaya:update': ({ pelaksanaId, data }) => suratTugasApi.updateBiaya(pelaksanaId, data),
+  'st:biaya:list': (stId) => suratTugasApi.getBiayaList(stId),
+
+  // Surat Tugas Bukti routes
+  'st:bukti:list': (stId) => suratTugasApi.getBuktiList(stId),
+  'st:bukti:add': ({ stId, data }) => suratTugasApi.addBukti(stId, data),
+  'st:bukti:delete': (id) => suratTugasApi.deleteBukti(id),
+
+  // Surat Tugas Pertanggungjawaban routes
+  'st:pertanggungjawaban:update': ({ stId, data }) => suratTugasApi.updatePertanggungjawaban(stId, data),
+
+  // Surat Tugas Dokumen routes
+  'st:dokumen:generate': ({ stId, jenis }) => suratTugasApi.generateDokumen(stId, jenis),
+  'st:dokumen:list': (stId) => suratTugasApi.getDokumenList(stId)
 };
 
 module.exports = {
@@ -166,6 +221,7 @@ module.exports = {
   documentApi,
   reportApi,
   userApi,
+  suratTugasApi,
 
   // All APIs
   apis,
