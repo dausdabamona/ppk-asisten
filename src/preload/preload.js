@@ -12,6 +12,107 @@ const invoke = (channel) => (...args) => ipcRenderer.invoke(channel, ...args);
 
 // Expose protected methods to renderer process
 contextBridge.exposeInMainWorld('electronAPI', {
+  // ==================== Satker API ====================
+  satker: {
+    get: () => ipcRenderer.invoke('satker:get'),
+    update: (data) => ipcRenderer.invoke('satker:update', data)
+  },
+
+  // ==================== Pejabat API ====================
+  pejabat: {
+    list: () => ipcRenderer.invoke('pejabat:list'),
+    create: (data) => ipcRenderer.invoke('pejabat:create', data),
+    update: (id, data) => ipcRenderer.invoke('pejabat:update', { id, data }),
+    delete: (id) => ipcRenderer.invoke('pejabat:delete', id)
+  },
+
+  // ==================== Unit Kerja API ====================
+  unitKerja: {
+    list: () => ipcRenderer.invoke('unit-kerja:list'),
+    create: (data) => ipcRenderer.invoke('unit-kerja:create', data),
+    update: (id, data) => ipcRenderer.invoke('unit-kerja:update', { id, data }),
+    delete: (id) => ipcRenderer.invoke('unit-kerja:delete', id)
+  },
+
+  // ==================== Pegawai API ====================
+  pegawai: {
+    list: (params) => ipcRenderer.invoke('pegawai:list', params),
+    get: (id) => ipcRenderer.invoke('pegawai:get', id),
+    create: (data) => ipcRenderer.invoke('pegawai:create', data),
+    update: (id, data) => ipcRenderer.invoke('pegawai:update', { id, data }),
+    delete: (id) => ipcRenderer.invoke('pegawai:delete', id),
+    importCsv: (content) => ipcRenderer.invoke('pegawai:import-csv', content),
+    exportCsv: (filters) => ipcRenderer.invoke('pegawai:export-csv', filters)
+  },
+
+  // ==================== Supplier API ====================
+  supplier: {
+    list: (params) => ipcRenderer.invoke('supplier:list', params),
+    get: (id) => ipcRenderer.invoke('supplier:get', id),
+    create: (data) => ipcRenderer.invoke('supplier:create', data),
+    update: (id, data) => ipcRenderer.invoke('supplier:update', { id, data }),
+    delete: (id) => ipcRenderer.invoke('supplier:delete', id),
+    search: (params) => ipcRenderer.invoke('supplier:search', params)
+  },
+
+  // ==================== DIPA API ====================
+  dipa: {
+    // DIPA CRUD
+    list: (params) => ipcRenderer.invoke('dipa:list', params),
+    get: (id) => ipcRenderer.invoke('dipa:get', id),
+    create: (data) => ipcRenderer.invoke('dipa:create', data),
+    update: (id, data) => ipcRenderer.invoke('dipa:update', { id, data }),
+
+    // Revisi
+    revisiList: (dipaId) => ipcRenderer.invoke('dipa:revisi:list', dipaId),
+    revisiUpload: (dipaId, data) => ipcRenderer.invoke('dipa:revisi:upload', { dipaId, data }),
+    revisiSetActive: (dipaId, revisiId) => ipcRenderer.invoke('dipa:revisi:set-active', { dipaId, revisiId }),
+    revisiDelete: (dipaId, revisiId) => ipcRenderer.invoke('dipa:revisi:delete', { dipaId, revisiId }),
+
+    // Items
+    itemsList: (params) => ipcRenderer.invoke('dipa:items:list', params),
+    itemsHierarki: (revisiId) => ipcRenderer.invoke('dipa:items:hierarki', revisiId),
+    itemsSisaPagu: (itemId) => ipcRenderer.invoke('dipa:items:sisa-pagu', itemId),
+
+    // CSV Parser
+    parseCSV: (csvContent) => ipcRenderer.invoke('dipa:parse-csv', csvContent)
+  },
+
+  // ==================== SBM API ====================
+  sbm: {
+    // SBM Tahun CRUD
+    tahunList: () => ipcRenderer.invoke('sbm:tahun:list'),
+    tahunGet: (id) => ipcRenderer.invoke('sbm:tahun:get', id),
+    tahunCreate: (data) => ipcRenderer.invoke('sbm:tahun:create', data),
+    tahunUpdate: (id, data) => ipcRenderer.invoke('sbm:tahun:update', { id, data }),
+    tahunDelete: (id) => ipcRenderer.invoke('sbm:tahun:delete', id),
+    tahunSetActive: (id) => ipcRenderer.invoke('sbm:tahun:setActive', id),
+
+    // Uang Harian CRUD
+    uangHarianList: (sbmTahunId) => ipcRenderer.invoke('sbm:uangHarian:list', sbmTahunId),
+    uangHarianCreate: (data) => ipcRenderer.invoke('sbm:uangHarian:create', data),
+    uangHarianUpdate: (id, data) => ipcRenderer.invoke('sbm:uangHarian:update', { id, data }),
+    uangHarianDelete: (id) => ipcRenderer.invoke('sbm:uangHarian:delete', id),
+
+    // Transport CRUD
+    transportList: (sbmTahunId) => ipcRenderer.invoke('sbm:transport:list', sbmTahunId),
+    transportCreate: (data) => ipcRenderer.invoke('sbm:transport:create', data),
+    transportUpdate: (id, data) => ipcRenderer.invoke('sbm:transport:update', { id, data }),
+    transportDelete: (id) => ipcRenderer.invoke('sbm:transport:delete', id),
+
+    // Honorarium CRUD
+    honorariumList: (sbmTahunId) => ipcRenderer.invoke('sbm:honorarium:list', sbmTahunId),
+    honorariumCreate: (data) => ipcRenderer.invoke('sbm:honorarium:create', data),
+    honorariumUpdate: (id, data) => ipcRenderer.invoke('sbm:honorarium:update', { id, data }),
+    honorariumDelete: (id) => ipcRenderer.invoke('sbm:honorarium:delete', id),
+    insertDefaultHonorarium: (sbmTahunId) => ipcRenderer.invoke('sbm:honorarium:insertDefault', sbmTahunId),
+
+    // Lookup (for transaction forms)
+    lookupUangHarian: (params) => ipcRenderer.invoke('sbm:lookup:uangHarian', params),
+    lookupHonorarium: (params) => ipcRenderer.invoke('sbm:lookup:honorarium', params),
+    lookupTransport: (params) => ipcRenderer.invoke('sbm:lookup:transport', params)
+  },
+
   // ==================== Request API ====================
   request: {
     create: (data) => ipcRenderer.invoke('request:create', data),
@@ -108,7 +209,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     deleteGeneratedDocument: (documentId) => ipcRenderer.invoke('document:deleteGeneratedDocument', documentId),
 
     // Storage
-    getStorageStats: () => ipcRenderer.invoke('document:getStorageStats')
+    getStorageStats: () => ipcRenderer.invoke('document:getStorageStats'),
+    openFolder: (requestId) => ipcRenderer.invoke('document:openFolder', requestId)
   },
 
   // ==================== Report API ====================
@@ -211,4 +313,4 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
 // Log that preload is loaded
 console.log('Preload script loaded successfully');
-console.log('Available APIs: request, vendor, contract, payment, document, report, user, db, app, dialog, window, log');
+console.log('Available APIs: satker, pejabat, unitKerja, pegawai, supplier, dipa, sbm, request, vendor, contract, payment, document, report, user, db, app, dialog, window, log');
