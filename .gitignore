@@ -1,2 +1,7 @@
 test-output/
 node_modules/
+
+# Build outputs
+dist/
+release/
+*.AppImage

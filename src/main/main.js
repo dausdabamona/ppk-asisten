@@ -10,6 +10,7 @@
 
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const PPKDatabase = require('./database');
 const { mainLogger, ipcLogger } = require('./logger');
 const { initializeApis, routes } = require('./api');
@@ -50,26 +51,128 @@ if (!gotTheLock) {
 function createWindow() {
   mainLogger.info('Creating main window');
 
+  // Determine if dev or prod
+  const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+
+  // Determine preload path
+  const preloadPath = path.join(__dirname, '../preload/preload.js');
+  
+  // Verify preload file exists
+  if (!fs.existsSync(preloadPath)) {
+    const error = `CRITICAL: Preload script not found at ${preloadPath}`;
+    console.error(error);
+    mainLogger.error(error);
+    
+    // Try alternative paths
+    const altPath1 = path.join(process.cwd(), 'src/preload/preload.js');
+    const altPath2 = path.join(app.getAppPath(), 'src/preload/preload.js');
+    
+    console.log('Alternative paths to check:');
+    console.log('  1:', altPath1, '- exists:', fs.existsSync(altPath1));
+    console.log('  2:', altPath2, '- exists:', fs.existsSync(altPath2));
+  } else {
+    console.log('✅ Preload script found at:', preloadPath);
+    mainLogger.info('Preload script found', { preloadPath });
+  }
+
+  const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+  
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
     minWidth: 1024,
     minHeight: 768,
     webPreferences: {
-      preload: path.join(__dirname, '../preload/preload.js'),
-      contextIsolation: true,
+      preload: preloadPath,
+      // In dev mode, disable contextIsolation to allow fallback API injection
+      // In production, keep it enabled for security
+      contextIsolation: !isDev,
       nodeIntegration: false,
-      sandbox: false
+      sandbox: false,
+      webSecurity: false, // Disable for development
+      enableRemoteModule: false
     },
     icon: path.join(__dirname, '../../build/icon.png'),
     show: false
   });
 
-  // Load app
-  const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+  console.log('BrowserWindow created with preload:', preloadPath);
 
+  // Listen for preload errors
+  mainWindow.webContents.on('preload-error', (event, preloadPath, error) => {
+    console.error('❌ PRELOAD ERROR:', error);
+    mainLogger.error('Preload script error', { preloadPath, error: error.message });
+  });
+
+  // Log when preload finishes
+  mainWindow.webContents.on('did-finish-load', () => {
+    console.log('✅ Renderer finished loading');
+    
+    // Inject a script to check if electronAPI exists
+    mainWindow.webContents.executeJavaScript(`
+      console.log('=== CHECKING ELECTRONAPI ===');
+      console.log('typeof window.electronAPI:', typeof window.electronAPI);
+      if (window.electronAPI) {
+        console.log('✅ electronAPI available from preload');
+        console.log('electronAPI keys:', Object.keys(window.electronAPI));
+      } else {
+        console.warn('⚠️ window.electronAPI is undefined - preload script may not have executed');
+        console.warn('Attempting fallback injection...');
+        
+        // Fallback: If preload didn't work, try to access ipcRenderer directly (dev mode only)
+        try {
+          const { ipcRenderer } = require('electron');
+          console.log('✅ ipcRenderer available - creating fallback electronAPI');
+          
+          window.electronAPI = {
+            pegawai: {
+              list: (options) => ipcRenderer.invoke('pegawai:list', options),
+              get: (id) => ipcRenderer.invoke('pegawai:get', id),
+              getByNip: (nip) => ipcRenderer.invoke('pegawai:get-by-nip', nip),
+              create: (data) => ipcRenderer.invoke('pegawai:create', data),
+              update: (id, data) => ipcRenderer.invoke('pegawai:update', { id, data }),
+              delete: (id) => ipcRenderer.invoke('pegawai:delete', id),
+              search: (query) => ipcRenderer.invoke('pegawai:search', query),
+              importCsv: (csvData) => ipcRenderer.invoke('pegawai:import-csv', csvData),
+              exportCsv: () => ipcRenderer.invoke('pegawai:export-csv')
+            },
+            satker: {
+              list: (options) => ipcRenderer.invoke('satker:list', options),
+              get: (id) => ipcRenderer.invoke('satker:get', id),
+              create: (data) => ipcRenderer.invoke('satker:create', data),
+              update: (id, data) => ipcRenderer.invoke('satker:update', { id, data }),
+              delete: (id) => ipcRenderer.invoke('satker:delete', id)
+            },
+            dipa: {
+              list: (options) => ipcRenderer.invoke('dipa:list', options),
+              get: (id) => ipcRenderer.invoke('dipa:get', id),
+              getSummary: (tahun) => ipcRenderer.invoke('dipa:get-summary', tahun),
+              create: (data) => ipcRenderer.invoke('dipa:create', data),
+              update: (id, data) => ipcRenderer.invoke('dipa:update', { id, data }),
+              delete: (id) => ipcRenderer.invoke('dipa:delete', id),
+              importCsv: (csvData) => ipcRenderer.invoke('dipa:import-csv', csvData),
+              exportCsv: (filters) => ipcRenderer.invoke('dipa:export-csv', filters)
+            }
+          };
+          
+          console.log('✅ Fallback electronAPI created successfully');
+          console.log('Available APIs:', Object.keys(window.electronAPI));
+        } catch (err) {
+          console.error('❌ Failed to create fallback API:', err.message);
+        }
+      }
+    `).catch(err => {
+      console.error('Failed to execute check script:', err);
+    });
+  });
+
+  // Load app
   if (isDev) {
-    mainWindow.loadURL('http://localhost:5173');
+    // Try different Vite ports
+    const vitePort = process.env.VITE_PORT || 5173;
+    const viteUrl = `http://localhost:${vitePort}`;
+    console.log('Loading Vite dev server from:', viteUrl);
+    mainWindow.loadURL(viteUrl);
     mainWindow.webContents.openDevTools();
   } else {
     mainWindow.loadFile(path.join(__dirname, '../../dist/renderer/index.html'));

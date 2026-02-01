@@ -89,6 +89,90 @@ class PPKDatabase {
         updated_at TEXT DEFAULT (datetime('now', 'localtime'))
       );
 
+      -- Pegawai table (Employee/Staff data)
+      CREATE TABLE IF NOT EXISTS pegawai (
+        id TEXT PRIMARY KEY,
+        nip TEXT UNIQUE NOT NULL,
+        nama TEXT NOT NULL,
+        jabatan TEXT,
+        golongan TEXT,
+        pangkat TEXT,
+        rekening TEXT,
+        bank TEXT,
+        unitKerja TEXT,
+        created_at TEXT DEFAULT (datetime('now', 'localtime')),
+        updated_at TEXT DEFAULT (datetime('now', 'localtime'))
+      );
+
+      -- Satker (Work Unit/Organization) with Officials
+      CREATE TABLE IF NOT EXISTS satker (
+        id TEXT PRIMARY KEY,
+        kode_satker TEXT UNIQUE NOT NULL,
+        nama TEXT NOT NULL,
+        npwp TEXT UNIQUE,
+        alamat TEXT,
+        kota TEXT,
+        kpa_nip TEXT,
+        ppk_nip TEXT,
+        ppspm_nip TEXT,
+        bendahara_nip TEXT,
+        created_at TEXT DEFAULT (datetime('now', 'localtime')),
+        updated_at TEXT DEFAULT (datetime('now', 'localtime')),
+        FOREIGN KEY (kpa_nip) REFERENCES pegawai(nip) ON DELETE SET NULL,
+        FOREIGN KEY (ppk_nip) REFERENCES pegawai(nip) ON DELETE SET NULL,
+        FOREIGN KEY (ppspm_nip) REFERENCES pegawai(nip) ON DELETE SET NULL,
+        FOREIGN KEY (bendahara_nip) REFERENCES pegawai(nip) ON DELETE SET NULL
+      );
+
+      -- DIPA (Daftar Isian Pelaksanaan Anggaran)
+      CREATE TABLE IF NOT EXISTS dipa (
+        id TEXT PRIMARY KEY,
+        tahun_anggaran INTEGER NOT NULL,
+        nomor_dipa TEXT,
+        tanggal_dipa TEXT,
+        kdsatker TEXT,
+        kode_program TEXT,
+        kode_kegiatan TEXT,
+        kode_output TEXT,
+        kode_suboutput TEXT,
+        kode_komponen TEXT,
+        kode_subkomponen TEXT,
+        kode_akun TEXT,
+        uraian_item TEXT,
+        volume REAL,
+        satuan TEXT,
+        harga_satuan REAL,
+        total REAL,
+        jan REAL DEFAULT 0,
+        feb REAL DEFAULT 0,
+        mar REAL DEFAULT 0,
+        apr REAL DEFAULT 0,
+        mei REAL DEFAULT 0,
+        jun REAL DEFAULT 0,
+        jul REAL DEFAULT 0,
+        agt REAL DEFAULT 0,
+        sep REAL DEFAULT 0,
+        okt REAL DEFAULT 0,
+        nov REAL DEFAULT 0,
+        des REAL DEFAULT 0,
+        realisasi_jan REAL DEFAULT 0,
+        realisasi_feb REAL DEFAULT 0,
+        realisasi_mar REAL DEFAULT 0,
+        realisasi_apr REAL DEFAULT 0,
+        realisasi_mei REAL DEFAULT 0,
+        realisasi_jun REAL DEFAULT 0,
+        realisasi_jul REAL DEFAULT 0,
+        realisasi_agt REAL DEFAULT 0,
+        realisasi_sep REAL DEFAULT 0,
+        realisasi_okt REAL DEFAULT 0,
+        realisasi_nov REAL DEFAULT 0,
+        realisasi_des REAL DEFAULT 0,
+        sisa_pagu REAL,
+        catatan TEXT,
+        created_at TEXT DEFAULT (datetime('now', 'localtime')),
+        updated_at TEXT DEFAULT (datetime('now', 'localtime'))
+      );
+
       -- Procurement requests
       CREATE TABLE IF NOT EXISTS procurement_requests (
         id TEXT PRIMARY KEY,
@@ -303,8 +387,8 @@ class PPKDatabase {
       if (version > currentVersion && version <= DB_VERSION) {
         console.log(`Running migration ${version}: ${name}`);
 
-        // Create backup before migration
-        this.backup(`pre-migration-v${version}`);
+        // Skip backup during initial migration to avoid errors
+        // this.backup('pre_migration');
 
         try {
           const migration = require(path.join(migrationsDir, file));
@@ -573,51 +657,88 @@ class PPKDatabase {
   }
 
   seedInitialData() {
-    // Check if data exists
-    const userCount = this.db.prepare('SELECT COUNT(*) as count FROM users').get();
+    try {
+      // Check if data exists
+      const userCount = this.db.prepare('SELECT COUNT(*) as count FROM users').get();
 
-    if (userCount.count === 0) {
-      console.log('Seeding initial data...');
+      if (userCount.count === 0) {
+        console.log('Seeding initial data...');
 
-      // Create default admin user
-      const adminId = uuidv4();
-      this.db.prepare(`
-        INSERT INTO users (id, email, password, name, role, unit)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run(
-        adminId,
-        'admin@pkpsorong.ac.id',
-        'admin123', // In production, use bcrypt hash
-        'Administrator',
-        'admin',
-        'TU'
-      );
-
-      // Create sample budget codes
-      const budgetCodes = [
-        { code: '5211', name: 'Belanja Barang Operasional', amount: 500000000 },
-        { code: '5212', name: 'Belanja Barang Non Operasional', amount: 300000000 },
-        { code: '5221', name: 'Belanja Jasa', amount: 200000000 },
-        { code: '5231', name: 'Belanja Pemeliharaan', amount: 150000000 },
-        { code: '5311', name: 'Belanja Modal Peralatan', amount: 400000000 }
-      ];
-
-      const budgetStmt = this.db.prepare(`
-        INSERT INTO budget_allocation (id, budget_code, budget_name, total_allocation, fiscal_year)
-        VALUES (?, ?, ?, ?, ?)
-      `);
-
-      for (const budget of budgetCodes) {
-        budgetStmt.run(
-          uuidv4(),
-          budget.code,
-          budget.name,
-          budget.amount,
-          new Date().getFullYear()
+        // Create default admin user
+        const adminId = uuidv4();
+        this.db.prepare(`
+          INSERT INTO users (id, email, password, name, role, unit)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `).run(
+          adminId,
+          'admin@pkpsorong.ac.id',
+          'admin123', // In production, use bcrypt hash
+          'Administrator',
+          'admin',
+          'TU'
         );
+
+        // Create sample budget codes
+        const budgetCodes = [
+          { code: '5211', name: 'Belanja Barang Operasional', amount: 500000000 },
+          { code: '5212', name: 'Belanja Barang Non Operasional', amount: 300000000 },
+          { code: '5221', name: 'Belanja Jasa', amount: 200000000 },
+          { code: '5231', name: 'Belanja Pemeliharaan', amount: 150000000 },
+          { code: '5311', name: 'Belanja Modal Peralatan', amount: 400000000 }
+        ];
+
+        const budgetStmt = this.db.prepare(`
+          INSERT INTO budget_allocation (id, budget_code, budget_name, total_allocation, fiscal_year)
+          VALUES (?, ?, ?, ?, ?)
+        `);
+
+        for (const budget of budgetCodes) {
+          budgetStmt.run(
+            uuidv4(),
+            budget.code,
+            budget.name,
+            budget.amount,
+            new Date().getFullYear()
+          );
+        }
+
+        console.log('Initial user and budget data seeded');
       }
 
-      console.log('Initial data seeded');
+      // Seed pegawai data (separate from user seed)
+      try {
+        const pegawaiCount = this.db.prepare('SELECT COUNT(*) as count FROM pegawai').get();
+        
+        if (pegawaiCount.count === 0) {
+          console.log('Seeding pegawai data...');
+          const pegawaiSeed = require('./database/seeds/pegawai.seed.js');
+          
+          const pegawaiStmt = this.db.prepare(`
+            INSERT INTO pegawai (id, nip, nama, jabatan, golongan, pangkat, rekening, bank, unitKerja)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `);
+
+          for (const pegawai of pegawaiSeed) {
+            pegawaiStmt.run(
+              uuidv4(),
+              pegawai.nip,
+              pegawai.nama,
+              pegawai.jabatan,
+              pegawai.golongan,
+              pegawai.pangkat,
+              pegawai.rekening,
+              pegawai.bank,
+              pegawai.unitKerja
+            );
+          }
+
+          console.log(`Seeded ${pegawaiSeed.length} pegawai records`);
+        }
+      } catch (err) {
+        console.warn('Pegawai table might not exist or seed failed:', err.message);
+      }
+    } catch (err) {
+      console.error('Error during data seeding:', err);
     }
   }
 
@@ -1200,6 +1321,11 @@ class PPKDatabase {
     const backupPath = path.join(this.backupDir, `ppk-backup-${timestamp}.db`);
 
     try {
+      // Ensure backup directory exists
+      if (!fs.existsSync(this.backupDir)) {
+        fs.mkdirSync(this.backupDir, { recursive: true });
+      }
+
       this.db.backup(backupPath);
 
       const stats = fs.statSync(backupPath);

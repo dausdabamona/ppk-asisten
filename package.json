@@ -16,6 +16,7 @@
     "build:linux": "vite build && electron-builder --linux"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.0.3",
     "@vitejs/plugin-vue": "^5.0.0",
     "autoprefixer": "^10.4.16",
     "concurrently": "^8.2.2",
