@@ -1,354 +1,327 @@
 /**
- * Satker (Work Unit) API
- * 
- * Handles CRUD operations for satker (satuan kerja) with official assignments
- * Officials include: KPA, PPK, PPSPM, Bendahara
+ * Satker API Handler
+ * Handles IPC for satker, pejabat, and unit kerja operations
  */
 
-const { v4: uuidv4 } = require('uuid');
 const { ipcMain } = require('electron');
 
 class SatkerApi {
-  constructor(database) {
-    this.db = database.db;
+  constructor(db) {
+    this.db = db;
     this.registerHandlers();
   }
 
-  /**
-   * List all satker with pagination
-   */
-  list(options = {}) {
-    try {
-      const { limit = 50, offset = 0, sortBy = 'created_at', sortOrder = 'DESC' } = options;
-      const allowedSortColumns = ['nama', 'kode_satker', 'created_at', 'updated_at'];
-      const sortColumn = allowedSortColumns.includes(sortBy) ? sortBy : 'created_at';
-      const order = ['ASC', 'DESC'].includes(sortOrder) ? sortOrder : 'DESC';
+  registerHandlers() {
+    // Satker handlers
+    ipcMain.handle('satker:get', () => this.getSatker());
+    ipcMain.handle('satker:update', (_, data) => this.updateSatker(data));
 
-      // Get total count
-      const countResult = this.db.prepare('SELECT COUNT(*) as count FROM satker').get();
-      const total = countResult.count;
+    // Pejabat handlers
+    ipcMain.handle('pejabat:list', () => this.getPejabatList());
+    ipcMain.handle('pejabat:create', (_, data) => this.createPejabat(data));
+    ipcMain.handle('pejabat:update', (_, { id, data }) => this.updatePejabat(id, data));
+    ipcMain.handle('pejabat:delete', (_, id) => this.deletePejabat(id));
 
-      // Get paginated results
-      const query = `
-        SELECT 
-          s.id, s.kode_satker, s.nama, s.npwp, s.alamat, s.kota,
-          s.kpa_nip, s.ppk_nip, s.ppspm_nip, s.bendahara_nip,
-          s.created_at, s.updated_at,
-          kpa.nama as kpa_nama, kpa.jabatan as kpa_jabatan,
-          ppk.nama as ppk_nama, ppk.jabatan as ppk_jabatan,
-          ppspm.nama as ppspm_nama, ppspm.jabatan as ppspm_jabatan,
-          bendahara.nama as bendahara_nama, bendahara.jabatan as bendahara_jabatan
-        FROM satker s
-        LEFT JOIN pegawai kpa ON s.kpa_nip = kpa.nip
-        LEFT JOIN pegawai ppk ON s.ppk_nip = ppk.nip
-        LEFT JOIN pegawai ppspm ON s.ppspm_nip = ppspm.nip
-        LEFT JOIN pegawai bendahara ON s.bendahara_nip = bendahara.nip
-        ORDER BY ${sortColumn} ${order}
-        LIMIT ? OFFSET ?
-      `;
-
-      const data = this.db.prepare(query).all(limit, offset);
-      return {
-        success: true,
-        data,
-        total,
-        limit,
-        offset
-      };
-    } catch (error) {
-      console.error('Error listing satker:', error);
-      return { success: false, error: error.message };
-    }
+    // Unit Kerja handlers
+    ipcMain.handle('unit-kerja:list', () => this.getUnitKerjaList());
+    ipcMain.handle('unit-kerja:create', (_, data) => this.createUnitKerja(data));
+    ipcMain.handle('unit-kerja:update', (_, { id, data }) => this.updateUnitKerja(id, data));
+    ipcMain.handle('unit-kerja:delete', (_, id) => this.deleteUnitKerja(id));
   }
 
-  /**
-   * Get satker by ID
-   */
-  get(id) {
-    try {
-      const query = `
-        SELECT 
-          s.id, s.kode_satker, s.nama, s.npwp, s.alamat, s.kota,
-          s.kpa_nip, s.ppk_nip, s.ppspm_nip, s.bendahara_nip,
-          s.created_at, s.updated_at,
-          kpa.nama as kpa_nama, kpa.jabatan as kpa_jabatan,
-          ppk.nama as ppk_nama, ppk.jabatan as ppk_jabatan,
-          ppspm.nama as ppspm_nama, ppspm.jabatan as ppspm_jabatan,
-          bendahara.nama as bendahara_nama, bendahara.jabatan as bendahara_jabatan
-        FROM satker s
-        LEFT JOIN pegawai kpa ON s.kpa_nip = kpa.nip
-        LEFT JOIN pegawai ppk ON s.ppk_nip = ppk.nip
-        LEFT JOIN pegawai ppspm ON s.ppspm_nip = ppspm.nip
-        LEFT JOIN pegawai bendahara ON s.bendahara_nip = bendahara.nip
-        WHERE s.id = ?
-      `;
+  // ==================== Satker Methods ====================
 
-      const data = this.db.prepare(query).get(id);
-      if (!data) {
-        return { success: false, error: 'Satker not found' };
-      }
-      return { success: true, data };
+  getSatker() {
+    try {
+      const satker = this.db.prepare(`
+        SELECT * FROM satker LIMIT 1
+      `).get();
+
+      return satker || null;
     } catch (error) {
       console.error('Error getting satker:', error);
-      return { success: false, error: error.message };
+      throw error;
     }
   }
 
-  /**
-   * Get satker by kode_satker
-   */
-  getByKode(kode) {
+  updateSatker(data) {
     try {
-      const query = `
-        SELECT 
-          s.id, s.kode_satker, s.nama, s.npwp, s.alamat, s.kota,
-          s.kpa_nip, s.ppk_nip, s.ppspm_nip, s.bendahara_nip,
-          s.created_at, s.updated_at,
-          kpa.nama as kpa_nama, kpa.jabatan as kpa_jabatan,
-          ppk.nama as ppk_nama, ppk.jabatan as ppk_jabatan,
-          ppspm.nama as ppspm_nama, ppspm.jabatan as ppspm_jabatan,
-          bendahara.nama as bendahara_nama, bendahara.jabatan as bendahara_jabatan
-        FROM satker s
-        LEFT JOIN pegawai kpa ON s.kpa_nip = kpa.nip
-        LEFT JOIN pegawai ppk ON s.ppk_nip = ppk.nip
-        LEFT JOIN pegawai ppspm ON s.ppspm_nip = ppspm.nip
-        LEFT JOIN pegawai bendahara ON s.bendahara_nip = bendahara.nip
-        WHERE s.kode_satker = ?
-      `;
-
-      const data = this.db.prepare(query).get(kode);
-      if (!data) {
-        return { success: false, error: 'Satker not found' };
-      }
-      return { success: true, data };
-    } catch (error) {
-      console.error('Error getting satker by kode:', error);
-      return { success: false, error: error.message };
-    }
-  }
-
-  /**
-   * Create new satker
-   */
-  create(data) {
-    try {
-      const { kode_satker, nama, npwp, alamat, kota, kpa_nip, ppk_nip, ppspm_nip, bendahara_nip } = data;
-
-      if (!kode_satker || !nama) {
-        return { success: false, error: 'kode_satker and nama are required' };
+      const satker = this.getSatker();
+      if (!satker) {
+        throw new Error('Satker not found');
       }
 
-      // Check if kode_satker already exists
-      const existing = this.db.prepare('SELECT id FROM satker WHERE kode_satker = ?').get(kode_satker);
-      if (existing) {
-        return { success: false, error: 'kode_satker already exists' };
-      }
-
-      // Validate NIPs if provided
-      const validateNip = (nip) => {
-        if (!nip) return true;
-        const pegawai = this.db.prepare('SELECT id FROM pegawai WHERE nip = ?').get(nip);
-        return !!pegawai;
-      };
-
-      if (!validateNip(kpa_nip) || !validateNip(ppk_nip) || !validateNip(ppspm_nip) || !validateNip(bendahara_nip)) {
-        return { success: false, error: 'One or more NIPs not found in pegawai data' };
-      }
-
-      const id = uuidv4();
-      const stmt = this.db.prepare(`
-        INSERT INTO satker (id, kode_satker, nama, npwp, alamat, kota, kpa_nip, ppk_nip, ppspm_nip, bendahara_nip)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `);
-
-      stmt.run(id, kode_satker, nama, npwp || null, alamat || null, kota || null, 
-               kpa_nip || null, ppk_nip || null, ppspm_nip || null, bendahara_nip || null);
-
-      return this.get(id);
-    } catch (error) {
-      console.error('Error creating satker:', error);
-      return { success: false, error: error.message };
-    }
-  }
-
-  /**
-   * Update satker
-   */
-  update(id, data) {
-    try {
-      // Check if satker exists
-      const existing = this.db.prepare('SELECT id FROM satker WHERE id = ?').get(id);
-      if (!existing) {
-        return { success: false, error: 'Satker not found' };
-      }
-
-      const { kode_satker, nama, npwp, alamat, kota, kpa_nip, ppk_nip, ppspm_nip, bendahara_nip } = data;
-
-      // If kode_satker is being changed, check uniqueness
-      if (kode_satker) {
-        const duplicate = this.db.prepare('SELECT id FROM satker WHERE kode_satker = ? AND id != ?').get(kode_satker, id);
-        if (duplicate) {
-          return { success: false, error: 'kode_satker already exists' };
-        }
-      }
-
-      // Validate NIPs if provided
-      const validateNip = (nip) => {
-        if (!nip) return true;
-        const pegawai = this.db.prepare('SELECT id FROM pegawai WHERE nip = ?').get(nip);
-        return !!pegawai;
-      };
-
-      if (!validateNip(kpa_nip) || !validateNip(ppk_nip) || !validateNip(ppspm_nip) || !validateNip(bendahara_nip)) {
-        return { success: false, error: 'One or more NIPs not found in pegawai data' };
-      }
-
-      const updates = [];
+      const fields = [];
       const values = [];
 
-      if (kode_satker !== undefined) { updates.push('kode_satker = ?'); values.push(kode_satker); }
-      if (nama !== undefined) { updates.push('nama = ?'); values.push(nama); }
-      if (npwp !== undefined) { updates.push('npwp = ?'); values.push(npwp || null); }
-      if (alamat !== undefined) { updates.push('alamat = ?'); values.push(alamat || null); }
-      if (kota !== undefined) { updates.push('kota = ?'); values.push(kota || null); }
-      if (kpa_nip !== undefined) { updates.push('kpa_nip = ?'); values.push(kpa_nip || null); }
-      if (ppk_nip !== undefined) { updates.push('ppk_nip = ?'); values.push(ppk_nip || null); }
-      if (ppspm_nip !== undefined) { updates.push('ppspm_nip = ?'); values.push(ppspm_nip || null); }
-      if (bendahara_nip !== undefined) { updates.push('bendahara_nip = ?'); values.push(bendahara_nip || null); }
+      const allowedFields = [
+        'kode_satker', 'nama', 'nama_singkat', 'kode_kl', 'nama_kl',
+        'kode_eselon1', 'nama_eselon1', 'alamat', 'kelurahan', 'kecamatan',
+        'kota', 'provinsi', 'kode_pos', 'telepon', 'email', 'website'
+      ];
 
-      if (updates.length === 0) {
-        return this.get(id);
-      }
-
-      updates.push('updated_at = datetime("now", "localtime")');
-      values.push(id);
-
-      const stmt = this.db.prepare(`UPDATE satker SET ${updates.join(', ')} WHERE id = ?`);
-      stmt.run(...values);
-
-      return this.get(id);
-    } catch (error) {
-      console.error('Error updating satker:', error);
-      return { success: false, error: error.message };
-    }
-  }
-
-  /**
-   * Delete satker
-   */
-  delete(id) {
-    try {
-      const existing = this.db.prepare('SELECT id FROM satker WHERE id = ?').get(id);
-      if (!existing) {
-        return { success: false, error: 'Satker not found' };
-      }
-
-      this.db.prepare('DELETE FROM satker WHERE id = ?').run(id);
-      return { success: true, message: 'Satker deleted successfully' };
-    } catch (error) {
-      console.error('Error deleting satker:', error);
-      return { success: false, error: error.message };
-    }
-  }
-
-  /**
-   * Search satker by name or kode
-   */
-  search(query) {
-    try {
-      const searchQuery = `
-        SELECT 
-          s.id, s.kode_satker, s.nama, s.npwp, s.alamat, s.kota,
-          s.kpa_nip, s.ppk_nip, s.ppspm_nip, s.bendahara_nip,
-          s.created_at, s.updated_at,
-          kpa.nama as kpa_nama, kpa.jabatan as kpa_jabatan,
-          ppk.nama as ppk_nama, ppk.jabatan as ppk_jabatan,
-          ppspm.nama as ppspm_nama, ppspm.jabatan as ppspm_jabatan,
-          bendahara.nama as bendahara_nama, bendahara.jabatan as bendahara_jabatan
-        FROM satker s
-        LEFT JOIN pegawai kpa ON s.kpa_nip = kpa.nip
-        LEFT JOIN pegawai ppk ON s.ppk_nip = ppk.nip
-        LEFT JOIN pegawai ppspm ON s.ppspm_nip = ppspm.nip
-        LEFT JOIN pegawai bendahara ON s.bendahara_nip = bendahara.nip
-        WHERE s.nama LIKE ? OR s.kode_satker LIKE ?
-      `;
-
-      const searchPattern = `%${query}%`;
-      const data = this.db.prepare(searchQuery).all(searchPattern, searchPattern);
-      return { success: true, data };
-    } catch (error) {
-      console.error('Error searching satker:', error);
-      return { success: false, error: error.message };
-    }
-  }
-
-  /**
-   * Get all available pegawai for official selection
-   */
-  getAvailablePegawai() {
-    try {
-      const query = `
-        SELECT id, nip, nama, jabatan, golongan, pangkat, bank, rekening
-        FROM pegawai
-        ORDER BY nama ASC
-      `;
-
-      const data = this.db.prepare(query).all();
-      return { success: true, data };
-    } catch (error) {
-      console.error('Error getting available pegawai:', error);
-      return { success: false, error: error.message };
-    }
-  }
-
-  /**
-   * Set official for satker
-   */
-  setOfficial(satker_id, officialType, nip) {
-    try {
-      const validTypes = ['kpa', 'ppk', 'ppspm', 'bendahara'];
-      if (!validTypes.includes(officialType)) {
-        return { success: false, error: 'Invalid official type' };
-      }
-
-      // Check if satker exists
-      const existing = this.db.prepare('SELECT id FROM satker WHERE id = ?').get(satker_id);
-      if (!existing) {
-        return { success: false, error: 'Satker not found' };
-      }
-
-      // Validate NIP
-      if (nip) {
-        const pegawai = this.db.prepare('SELECT id FROM pegawai WHERE nip = ?').get(nip);
-        if (!pegawai) {
-          return { success: false, error: 'Pegawai not found' };
+      for (const field of allowedFields) {
+        if (data[field] !== undefined) {
+          fields.push(`${field} = ?`);
+          values.push(data[field]);
         }
       }
 
-      const columnName = `${officialType}_nip`;
-      const stmt = this.db.prepare(`UPDATE satker SET ${columnName} = ?, updated_at = datetime("now", "localtime") WHERE id = ?`);
-      stmt.run(nip || null, satker_id);
+      if (fields.length === 0) {
+        return satker;
+      }
 
-      return this.get(satker_id);
+      values.push(satker.id);
+
+      this.db.prepare(`
+        UPDATE satker SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(...values);
+
+      return this.getSatker();
     } catch (error) {
-      console.error('Error setting official:', error);
-      return { success: false, error: error.message };
+      console.error('Error updating satker:', error);
+      throw error;
     }
   }
 
-  /**
-   * Register IPC handlers
-   */
-  registerHandlers() {
-    ipcMain.handle('satker:list', (event, options) => this.list(options));
-    ipcMain.handle('satker:get', (event, id) => this.get(id));
-    ipcMain.handle('satker:get-by-kode', (event, kode) => this.getByKode(kode));
-    ipcMain.handle('satker:create', (event, data) => this.create(data));
-    ipcMain.handle('satker:update', (event, { id, data }) => this.update(id, data));
-    ipcMain.handle('satker:delete', (event, id) => this.delete(id));
-    ipcMain.handle('satker:search', (event, query) => this.search(query));
-    ipcMain.handle('satker:get-available-pegawai', (event) => this.getAvailablePegawai());
-    ipcMain.handle('satker:set-official', (event, { satker_id, officialType, nip }) => this.setOfficial(satker_id, officialType, nip));
+  // ==================== Pejabat Methods ====================
+
+  getPejabatList() {
+    try {
+      const pejabat = this.db.prepare(`
+        SELECT p.*, s.nama as satker_nama
+        FROM pejabat p
+        LEFT JOIN satker s ON p.satker_id = s.id
+        ORDER BY
+          CASE p.jenis
+            WHEN 'KPA' THEN 1
+            WHEN 'PPK' THEN 2
+            WHEN 'PPSPM' THEN 3
+            WHEN 'BP' THEN 4
+          END,
+          p.nama
+      `).all();
+
+      return pejabat;
+    } catch (error) {
+      console.error('Error getting pejabat list:', error);
+      throw error;
+    }
+  }
+
+  createPejabat(data) {
+    try {
+      // Get satker ID
+      const satker = this.getSatker();
+      if (!satker) {
+        throw new Error('Satker not found');
+      }
+
+      const stmt = this.db.prepare(`
+        INSERT INTO pejabat (
+          satker_id, jenis, nama, nip, pangkat, golongan, jabatan,
+          no_sk, tanggal_sk, tmt_sk, sampai_dengan, status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+
+      const result = stmt.run(
+        satker.id,
+        data.jenis,
+        data.nama,
+        data.nip || null,
+        data.pangkat || null,
+        data.golongan || null,
+        data.jabatan || null,
+        data.no_sk || null,
+        data.tanggal_sk || null,
+        data.tmt_sk || null,
+        data.sampai_dengan || null,
+        data.status || 'aktif'
+      );
+
+      return this.db.prepare('SELECT * FROM pejabat WHERE id = ?').get(result.lastInsertRowid);
+    } catch (error) {
+      console.error('Error creating pejabat:', error);
+      throw error;
+    }
+  }
+
+  updatePejabat(id, data) {
+    try {
+      const fields = [];
+      const values = [];
+
+      const allowedFields = [
+        'jenis', 'nama', 'nip', 'pangkat', 'golongan', 'jabatan',
+        'no_sk', 'tanggal_sk', 'tmt_sk', 'sampai_dengan', 'status'
+      ];
+
+      for (const field of allowedFields) {
+        if (data[field] !== undefined) {
+          fields.push(`${field} = ?`);
+          values.push(data[field]);
+        }
+      }
+
+      if (fields.length === 0) {
+        return this.db.prepare('SELECT * FROM pejabat WHERE id = ?').get(id);
+      }
+
+      values.push(id);
+
+      this.db.prepare(`
+        UPDATE pejabat SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(...values);
+
+      return this.db.prepare('SELECT * FROM pejabat WHERE id = ?').get(id);
+    } catch (error) {
+      console.error('Error updating pejabat:', error);
+      throw error;
+    }
+  }
+
+  deletePejabat(id) {
+    try {
+      const pejabat = this.db.prepare('SELECT * FROM pejabat WHERE id = ?').get(id);
+      if (!pejabat) {
+        throw new Error('Pejabat not found');
+      }
+
+      this.db.prepare('DELETE FROM pejabat WHERE id = ?').run(id);
+      return { success: true, id };
+    } catch (error) {
+      console.error('Error deleting pejabat:', error);
+      throw error;
+    }
+  }
+
+  // ==================== Unit Kerja Methods ====================
+
+  getUnitKerjaList() {
+    try {
+      const unitKerja = this.db.prepare(`
+        SELECT uk.*, s.nama as satker_nama,
+          (SELECT COUNT(*) FROM pegawai WHERE unit_kerja_id = uk.id) as jumlah_pegawai
+        FROM unit_kerja uk
+        LEFT JOIN satker s ON uk.satker_id = s.id
+        ORDER BY uk.kode
+      `).all();
+
+      return unitKerja;
+    } catch (error) {
+      console.error('Error getting unit kerja list:', error);
+      throw error;
+    }
+  }
+
+  createUnitKerja(data) {
+    try {
+      // Get satker ID
+      const satker = this.getSatker();
+      if (!satker) {
+        throw new Error('Satker not found');
+      }
+
+      // Check for duplicate kode
+      const existing = this.db.prepare(
+        'SELECT id FROM unit_kerja WHERE kode = ? AND satker_id = ?'
+      ).get(data.kode, satker.id);
+
+      if (existing) {
+        throw new Error('Kode unit kerja sudah digunakan');
+      }
+
+      const stmt = this.db.prepare(`
+        INSERT INTO unit_kerja (satker_id, kode, nama, status)
+        VALUES (?, ?, ?, ?)
+      `);
+
+      const result = stmt.run(
+        satker.id,
+        data.kode,
+        data.nama,
+        data.status || 'aktif'
+      );
+
+      return this.db.prepare('SELECT * FROM unit_kerja WHERE id = ?').get(result.lastInsertRowid);
+    } catch (error) {
+      console.error('Error creating unit kerja:', error);
+      throw error;
+    }
+  }
+
+  updateUnitKerja(id, data) {
+    try {
+      const unitKerja = this.db.prepare('SELECT * FROM unit_kerja WHERE id = ?').get(id);
+      if (!unitKerja) {
+        throw new Error('Unit kerja not found');
+      }
+
+      // Check for duplicate kode if changing
+      if (data.kode && data.kode !== unitKerja.kode) {
+        const existing = this.db.prepare(
+          'SELECT id FROM unit_kerja WHERE kode = ? AND satker_id = ? AND id != ?'
+        ).get(data.kode, unitKerja.satker_id, id);
+
+        if (existing) {
+          throw new Error('Kode unit kerja sudah digunakan');
+        }
+      }
+
+      const fields = [];
+      const values = [];
+
+      const allowedFields = ['kode', 'nama', 'status'];
+
+      for (const field of allowedFields) {
+        if (data[field] !== undefined) {
+          fields.push(`${field} = ?`);
+          values.push(data[field]);
+        }
+      }
+
+      if (fields.length === 0) {
+        return unitKerja;
+      }
+
+      values.push(id);
+
+      this.db.prepare(`
+        UPDATE unit_kerja SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(...values);
+
+      return this.db.prepare('SELECT * FROM unit_kerja WHERE id = ?').get(id);
+    } catch (error) {
+      console.error('Error updating unit kerja:', error);
+      throw error;
+    }
+  }
+
+  deleteUnitKerja(id) {
+    try {
+      const unitKerja = this.db.prepare('SELECT * FROM unit_kerja WHERE id = ?').get(id);
+      if (!unitKerja) {
+        throw new Error('Unit kerja not found');
+      }
+
+      // Check if unit kerja has pegawai
+      const pegawaiCount = this.db.prepare(
+        'SELECT COUNT(*) as count FROM pegawai WHERE unit_kerja_id = ?'
+      ).get(id);
+
+      if (pegawaiCount.count > 0) {
+        throw new Error('Unit kerja masih memiliki pegawai terdaftar');
+      }
+
+      this.db.prepare('DELETE FROM unit_kerja WHERE id = ?').run(id);
+      return { success: true, id };
+    } catch (error) {
+      console.error('Error deleting unit kerja:', error);
+      throw error;
+    }
   }
 }
 

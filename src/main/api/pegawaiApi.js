@@ -1,328 +1,432 @@
+/**
+ * Pegawai API Handler
+ * Handles IPC for pegawai (employee) operations with pagination, search, and CSV import/export
+ */
+
 const { ipcMain } = require('electron');
 const { v4: uuidv4 } = require('uuid');
+const path = require('path');
+const fs = require('fs');
+const { app } = require('electron');
 
 class PegawaiApi {
-  constructor(database) {
-    this.db = database;
+  constructor(db) {
+    this.db = db;
     this.registerHandlers();
   }
 
   registerHandlers() {
-    ipcMain.handle('pegawai:list', (event, options = {}) => this.list(options));
-    ipcMain.handle('pegawai:get', (event, id) => this.get(id));
-    ipcMain.handle('pegawai:get-by-nip', (event, nip) => this.getByNip(nip));
-    ipcMain.handle('pegawai:create', (event, data) => this.create(data));
-    ipcMain.handle('pegawai:update', (event, id, data) => this.update(id, data));
-    ipcMain.handle('pegawai:delete', (event, id) => this.delete(id));
-    ipcMain.handle('pegawai:search', (event, query) => this.search(query));
-    ipcMain.handle('pegawai:import-csv', (event, csvData) => this.importCsv(csvData));
-    ipcMain.handle('pegawai:export-csv', (event) => this.exportCsv());
+    ipcMain.handle('pegawai:list', (_, params) => this.getPegawaiList(params));
+    ipcMain.handle('pegawai:get', (_, id) => this.getPegawaiById(id));
+    ipcMain.handle('pegawai:create', (_, data) => this.createPegawai(data));
+    ipcMain.handle('pegawai:update', (_, { id, data }) => this.updatePegawai(id, data));
+    ipcMain.handle('pegawai:delete', (_, id) => this.deletePegawai(id));
+    ipcMain.handle('pegawai:import-csv', (_, content) => this.importFromCSV(content));
+    ipcMain.handle('pegawai:export-csv', (_, filters) => this.exportToCSV(filters));
   }
 
-  list(options = {}) {
-    try {
-      const { limit = 100, offset = 0, sortBy = 'nama', sortOrder = 'ASC' } = options;
+  // ==================== List with Pagination ====================
 
-      const query = `
-        SELECT * FROM pegawai
-        ORDER BY ${sortBy} ${sortOrder.toUpperCase()}
+  getPegawaiList(params = {}) {
+    try {
+      const {
+        page = 1,
+        limit = 10,
+        search = '',
+        unit_kerja_id = '',
+        status = '',
+        golongan = '',
+        status_pegawai = ''
+      } = params;
+
+      const offset = (page - 1) * limit;
+      const conditions = [];
+      const values = [];
+
+      // Search by name or NIP
+      if (search) {
+        conditions.push('(p.nama LIKE ? OR p.nip LIKE ?)');
+        values.push(`%${search}%`, `%${search}%`);
+      }
+
+      // Filter by unit kerja
+      if (unit_kerja_id) {
+        conditions.push('p.unit_kerja_id = ?');
+        values.push(unit_kerja_id);
+      }
+
+      // Filter by status (active/inactive)
+      if (status) {
+        conditions.push('p.status = ?');
+        values.push(status);
+      }
+
+      // Filter by golongan
+      if (golongan) {
+        conditions.push('p.golongan = ?');
+        values.push(golongan);
+      }
+
+      // Filter by status pegawai (ASN/PPPK/Honorer)
+      if (status_pegawai) {
+        conditions.push('p.status_pegawai = ?');
+        values.push(status_pegawai);
+      }
+
+      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+      // Get total count
+      const countQuery = `
+        SELECT COUNT(*) as total FROM pegawai p ${whereClause}
+      `;
+      const totalResult = this.db.prepare(countQuery).get(...values);
+      const total = totalResult.total;
+
+      // Get paginated data
+      const dataQuery = `
+        SELECT p.*, uk.nama as unit_kerja_nama, uk.kode as unit_kerja_kode
+        FROM pegawai p
+        LEFT JOIN unit_kerja uk ON p.unit_kerja_id = uk.id
+        ${whereClause}
+        ORDER BY p.nama
         LIMIT ? OFFSET ?
       `;
 
-      const pegawai = this.db.db.prepare(query).all(limit, offset);
-
-      const countResult = this.db.db.prepare('SELECT COUNT(*) as total FROM pegawai').get();
+      const data = this.db.prepare(dataQuery).all(...values, limit, offset);
 
       return {
-        success: true,
-        data: pegawai,
-        total: countResult.total,
+        data,
+        page,
         limit,
-        offset
+        total,
+        totalPages: Math.ceil(total / limit)
       };
     } catch (error) {
-      console.error('Error listing pegawai:', error);
-      return { success: false, error: error.message };
+      console.error('Error getting pegawai list:', error);
+      throw error;
     }
   }
 
-  get(id) {
+  // ==================== Get by ID ====================
+
+  getPegawaiById(id) {
     try {
-      const pegawai = this.db.db
-        .prepare('SELECT * FROM pegawai WHERE id = ?')
-        .get(id);
+      const pegawai = this.db.prepare(`
+        SELECT p.*, uk.nama as unit_kerja_nama, uk.kode as unit_kerja_kode
+        FROM pegawai p
+        LEFT JOIN unit_kerja uk ON p.unit_kerja_id = uk.id
+        WHERE p.id = ?
+      `).get(id);
 
       if (!pegawai) {
-        return { success: false, error: 'Pegawai tidak ditemukan' };
+        throw new Error('Pegawai not found');
       }
 
-      return { success: true, data: pegawai };
+      return pegawai;
     } catch (error) {
       console.error('Error getting pegawai:', error);
-      return { success: false, error: error.message };
+      throw error;
     }
   }
 
-  getByNip(nip) {
+  // ==================== Create ====================
+
+  createPegawai(data) {
     try {
-      const pegawai = this.db.db
-        .prepare('SELECT * FROM pegawai WHERE nip = ?')
-        .get(nip);
-
-      if (!pegawai) {
-        return { success: false, error: 'Pegawai tidak ditemukan' };
-      }
-
-      return { success: true, data: pegawai };
-    } catch (error) {
-      console.error('Error getting pegawai by NIP:', error);
-      return { success: false, error: error.message };
-    }
-  }
-
-  create(data) {
-    try {
+      // Validate required fields
       if (!data.nip || !data.nama) {
-        return { success: false, error: 'NIP dan Nama wajib diisi' };
+        throw new Error('NIP dan Nama wajib diisi');
       }
 
-      // Check if NIP already exists
-      const existing = this.db.db
-        .prepare('SELECT id FROM pegawai WHERE nip = ?')
-        .get(data.nip);
-
+      // Check for duplicate NIP
+      const existing = this.db.prepare('SELECT id FROM pegawai WHERE nip = ?').get(data.nip);
       if (existing) {
-        return { success: false, error: 'NIP sudah terdaftar' };
+        throw new Error('NIP sudah terdaftar');
       }
 
       const id = uuidv4();
-      const stmt = this.db.db.prepare(`
+
+      const stmt = this.db.prepare(`
         INSERT INTO pegawai (
-          id, nip, nama, jabatan, golongan, pangkat, rekening, bank, unitKerja
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          id, nip, nik, nama, gelar_depan, gelar_belakang,
+          tempat_lahir, tanggal_lahir, jenis_kelamin,
+          alamat, no_hp, email, npwp,
+          status_pegawai, pangkat, golongan, tmt_pangkat,
+          jenis_jabatan, nama_jabatan, eselon, unit_kerja_id,
+          nama_bank, no_rekening, atas_nama_rekening,
+          status
+        ) VALUES (
+          ?, ?, ?, ?, ?, ?,
+          ?, ?, ?,
+          ?, ?, ?, ?,
+          ?, ?, ?, ?,
+          ?, ?, ?, ?,
+          ?, ?, ?,
+          ?
+        )
       `);
 
       stmt.run(
         id,
         data.nip,
+        data.nik || null,
         data.nama,
-        data.jabatan || null,
-        data.golongan || null,
+        data.gelar_depan || null,
+        data.gelar_belakang || null,
+        data.tempat_lahir || null,
+        data.tanggal_lahir || null,
+        data.jenis_kelamin || null,
+        data.alamat || null,
+        data.no_hp || null,
+        data.email || null,
+        data.npwp || null,
+        data.status_pegawai || 'ASN',
         data.pangkat || null,
-        data.rekening || null,
-        data.bank || null,
-        data.unitKerja || null
+        data.golongan || null,
+        data.tmt_pangkat || null,
+        data.jenis_jabatan || null,
+        data.nama_jabatan || null,
+        data.eselon || null,
+        data.unit_kerja_id || null,
+        data.nama_bank || null,
+        data.no_rekening || null,
+        data.atas_nama_rekening || null,
+        data.status || 'aktif'
       );
 
-      return {
-        success: true,
-        data: { id, ...data }
-      };
+      return this.getPegawaiById(id);
     } catch (error) {
       console.error('Error creating pegawai:', error);
-      return { success: false, error: error.message };
+      throw error;
     }
   }
 
-  update(id, data) {
-    try {
-      const existing = this.db.db
-        .prepare('SELECT * FROM pegawai WHERE id = ?')
-        .get(id);
+  // ==================== Update ====================
 
-      if (!existing) {
-        return { success: false, error: 'Pegawai tidak ditemukan' };
+  updatePegawai(id, data) {
+    try {
+      const pegawai = this.db.prepare('SELECT * FROM pegawai WHERE id = ?').get(id);
+      if (!pegawai) {
+        throw new Error('Pegawai not found');
       }
 
-      // Check if new NIP conflicts (if NIP is being updated)
-      if (data.nip && data.nip !== existing.nip) {
-        const conflict = this.db.db
-          .prepare('SELECT id FROM pegawai WHERE nip = ?')
-          .get(data.nip);
-        if (conflict) {
-          return { success: false, error: 'NIP sudah terdaftar' };
+      // Check for duplicate NIP if changing
+      if (data.nip && data.nip !== pegawai.nip) {
+        const existing = this.db.prepare('SELECT id FROM pegawai WHERE nip = ? AND id != ?').get(data.nip, id);
+        if (existing) {
+          throw new Error('NIP sudah terdaftar');
         }
       }
 
-      const updates = [];
+      const fields = [];
       const values = [];
 
-      if (data.nip !== undefined) {
-        updates.push('nip = ?');
-        values.push(data.nip);
-      }
-      if (data.nama !== undefined) {
-        updates.push('nama = ?');
-        values.push(data.nama);
-      }
-      if (data.jabatan !== undefined) {
-        updates.push('jabatan = ?');
-        values.push(data.jabatan);
-      }
-      if (data.golongan !== undefined) {
-        updates.push('golongan = ?');
-        values.push(data.golongan);
-      }
-      if (data.pangkat !== undefined) {
-        updates.push('pangkat = ?');
-        values.push(data.pangkat);
-      }
-      if (data.rekening !== undefined) {
-        updates.push('rekening = ?');
-        values.push(data.rekening);
-      }
-      if (data.bank !== undefined) {
-        updates.push('bank = ?');
-        values.push(data.bank);
-      }
-      if (data.unitKerja !== undefined) {
-        updates.push('unitKerja = ?');
-        values.push(data.unitKerja);
+      const allowedFields = [
+        'nip', 'nik', 'nama', 'gelar_depan', 'gelar_belakang',
+        'tempat_lahir', 'tanggal_lahir', 'jenis_kelamin',
+        'alamat', 'no_hp', 'email', 'npwp',
+        'status_pegawai', 'pangkat', 'golongan', 'tmt_pangkat',
+        'jenis_jabatan', 'nama_jabatan', 'eselon', 'unit_kerja_id',
+        'nama_bank', 'no_rekening', 'atas_nama_rekening',
+        'status'
+      ];
+
+      for (const field of allowedFields) {
+        if (data[field] !== undefined) {
+          fields.push(`${field} = ?`);
+          values.push(data[field]);
+        }
       }
 
-      if (updates.length === 0) {
-        return { success: true, data: existing };
+      if (fields.length === 0) {
+        return pegawai;
       }
 
-      updates.push('updated_at = datetime("now", "localtime")');
       values.push(id);
 
-      const query = `UPDATE pegawai SET ${updates.join(', ')} WHERE id = ?`;
-      this.db.db.prepare(query).run(...values);
+      this.db.prepare(`
+        UPDATE pegawai SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(...values);
 
-      const updated = this.db.db
-        .prepare('SELECT * FROM pegawai WHERE id = ?')
-        .get(id);
-
-      return { success: true, data: updated };
+      return this.getPegawaiById(id);
     } catch (error) {
       console.error('Error updating pegawai:', error);
-      return { success: false, error: error.message };
+      throw error;
     }
   }
 
-  delete(id) {
-    try {
-      const existing = this.db.db
-        .prepare('SELECT * FROM pegawai WHERE id = ?')
-        .get(id);
+  // ==================== Delete ====================
 
-      if (!existing) {
-        return { success: false, error: 'Pegawai tidak ditemukan' };
+  deletePegawai(id) {
+    try {
+      const pegawai = this.db.prepare('SELECT * FROM pegawai WHERE id = ?').get(id);
+      if (!pegawai) {
+        throw new Error('Pegawai not found');
       }
 
-      this.db.db.prepare('DELETE FROM pegawai WHERE id = ?').run(id);
-
-      return { success: true, message: 'Pegawai berhasil dihapus' };
+      this.db.prepare('DELETE FROM pegawai WHERE id = ?').run(id);
+      return { success: true, id };
     } catch (error) {
       console.error('Error deleting pegawai:', error);
-      return { success: false, error: error.message };
+      throw error;
     }
   }
 
-  search(query) {
+  // ==================== Import CSV ====================
+
+  importFromCSV(content) {
     try {
-      const searchTerm = `%${query}%`;
-
-      const results = this.db.db.prepare(`
-        SELECT * FROM pegawai
-        WHERE nip LIKE ? OR nama LIKE ? OR jabatan LIKE ? OR unitKerja LIKE ?
-        ORDER BY nama ASC
-        LIMIT 50
-      `).all(searchTerm, searchTerm, searchTerm, searchTerm);
-
-      return {
-        success: true,
-        data: results,
-        count: results.length
-      };
-    } catch (error) {
-      console.error('Error searching pegawai:', error);
-      return { success: false, error: error.message };
-    }
-  }
-
-  importCsv(csvData) {
-    try {
-      if (!Array.isArray(csvData)) {
-        return { success: false, error: 'Data harus berupa array' };
+      const lines = content.split('\n').filter(line => line.trim());
+      if (lines.length < 2) {
+        throw new Error('File CSV kosong atau tidak valid');
       }
 
-      const stmt = this.db.db.prepare(`
+      // Parse header
+      const header = lines[0].split(',').map(h => h.trim().toLowerCase());
+      const requiredFields = ['nip', 'nama'];
+      for (const field of requiredFields) {
+        if (!header.includes(field)) {
+          throw new Error(`Field wajib tidak ditemukan: ${field}`);
+        }
+      }
+
+      const results = {
+        success: 0,
+        failed: 0,
+        errors: []
+      };
+
+      // Process rows
+      const insertStmt = this.db.prepare(`
         INSERT OR IGNORE INTO pegawai (
-          id, nip, nama, jabatan, golongan, pangkat, rekening, bank, unitKerja
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          id, nip, nama, status_pegawai, golongan, status
+        ) VALUES (?, ?, ?, ?, ?, ?)
       `);
 
-      let imported = 0;
-      let skipped = 0;
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',').map(v => v.trim());
+        const row = {};
 
-      for (const row of csvData) {
+        header.forEach((h, index) => {
+          row[h] = values[index] || null;
+        });
+
         if (!row.nip || !row.nama) {
-          skipped += 1;
+          results.failed++;
+          results.errors.push(`Baris ${i + 1}: NIP atau Nama kosong`);
           continue;
         }
 
-        const result = stmt.run(
-          uuidv4(),
-          row.nip,
-          row.nama,
-          row.jabatan || null,
-          row.golongan || null,
-          row.pangkat || null,
-          row.rekening || null,
-          row.bank || null,
-          row.unitKerja || null
-        );
-
-        if (result.changes > 0) {
-          imported += 1;
-        } else {
-          skipped += 1;
+        try {
+          insertStmt.run(
+            uuidv4(),
+            row.nip,
+            row.nama,
+            row.status_pegawai || 'ASN',
+            row.golongan || null,
+            'aktif'
+          );
+          results.success++;
+        } catch (err) {
+          results.failed++;
+          results.errors.push(`Baris ${i + 1}: ${err.message}`);
         }
       }
 
       return {
         success: true,
-        imported,
-        skipped,
-        total: csvData.length
+        imported: results.success,
+        failed: results.failed,
+        errors: results.errors.slice(0, 10) // Limit errors shown
       };
     } catch (error) {
-      console.error('Error importing pegawai CSV:', error);
-      return { success: false, error: error.message };
+      console.error('Error importing CSV:', error);
+      throw error;
     }
   }
 
-  exportCsv() {
+  // ==================== Export CSV ====================
+
+  exportToCSV(filters = {}) {
     try {
-      const pegawai = this.db.db
-        .prepare('SELECT nip, nama, jabatan, golongan, pangkat, rekening, bank, unitKerja FROM pegawai ORDER BY nama')
-        .all();
+      // Get all pegawai with filters
+      const result = this.getPegawaiList({
+        ...filters,
+        page: 1,
+        limit: 10000 // Get all
+      });
 
-      // Create CSV content
-      const headers = ['nip', 'nama', 'jabatan', 'golongan', 'pangkat', 'rekening', 'bank', 'unitKerja'];
-      let csv = headers.join(';') + '\n';
-
-      for (const row of pegawai) {
-        const values = headers.map(h => {
-          const val = row[h] || '';
-          // Escape quotes and wrap if contains comma or semicolon
-          return typeof val === 'string' && (val.includes(';') || val.includes(',') || val.includes('"'))
-            ? `"${val.replace(/"/g, '""')}"`
-            : val;
-        });
-        csv += values.join(';') + '\n';
+      if (result.data.length === 0) {
+        throw new Error('Tidak ada data untuk diexport');
       }
+
+      // CSV header
+      const headers = [
+        'NIP', 'NIK', 'Nama', 'Gelar Depan', 'Gelar Belakang',
+        'Tempat Lahir', 'Tanggal Lahir', 'Jenis Kelamin',
+        'Alamat', 'No HP', 'Email', 'NPWP',
+        'Status Pegawai', 'Pangkat', 'Golongan', 'TMT Pangkat',
+        'Jenis Jabatan', 'Nama Jabatan', 'Eselon', 'Unit Kerja',
+        'Nama Bank', 'No Rekening', 'Atas Nama Rekening',
+        'Status'
+      ];
+
+      let csv = headers.join(',') + '\n';
+
+      // Add rows
+      for (const row of result.data) {
+        const values = [
+          row.nip || '',
+          row.nik || '',
+          row.nama || '',
+          row.gelar_depan || '',
+          row.gelar_belakang || '',
+          row.tempat_lahir || '',
+          row.tanggal_lahir || '',
+          row.jenis_kelamin || '',
+          (row.alamat || '').replace(/,/g, ';'),
+          row.no_hp || '',
+          row.email || '',
+          row.npwp || '',
+          row.status_pegawai || '',
+          row.pangkat || '',
+          row.golongan || '',
+          row.tmt_pangkat || '',
+          row.jenis_jabatan || '',
+          row.nama_jabatan || '',
+          row.eselon || '',
+          row.unit_kerja_nama || '',
+          row.nama_bank || '',
+          row.no_rekening || '',
+          row.atas_nama_rekening || '',
+          row.status || ''
+        ];
+
+        csv += values.map(v => `"${v}"`).join(',') + '\n';
+      }
+
+      // Save to file
+      const exportDir = path.join(app.getPath('userData'), 'exports');
+      if (!fs.existsSync(exportDir)) {
+        fs.mkdirSync(exportDir, { recursive: true });
+      }
+
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
+      const filename = `pegawai_export_${timestamp}.csv`;
+      const filepath = path.join(exportDir, filename);
+
+      fs.writeFileSync(filepath, csv, 'utf-8');
 
       return {
         success: true,
-        data: csv,
-        filename: `pegawai_${new Date().toISOString().split('T')[0]}.csv`
+        path: filepath,
+        filename,
+        count: result.data.length
       };
     } catch (error) {
-      console.error('Error exporting pegawai CSV:', error);
-      return { success: false, error: error.message };
+      console.error('Error exporting CSV:', error);
+      throw error;
     }
   }
 }

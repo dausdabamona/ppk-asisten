@@ -143,6 +143,7 @@ const routes = {
 
   // Document routes - Storage
   'document:getStorageStats': () => documentApi.getStorageStats(),
+  'document:openFolder': (requestId) => documentApi.openFolder(requestId),
 
   // Report routes
   'report:getDashboard': () => reportApi.getDashboard(),

@@ -5,31 +5,148 @@
  * All IPC communication goes through here
  */
 
-// Immediate debug log
-console.log('🚀 PRELOAD SCRIPT STARTING...');
+const { contextBridge, ipcRenderer } = require('electron');
 
-try {
-  const { contextBridge, ipcRenderer } = require('electron');
+// Helper to create IPC invoke wrapper
+const invoke = (channel) => (...args) => ipcRenderer.invoke(channel, ...args);
 
-  console.log('✅ Electron modules loaded');
-  console.log('contextBridge:', typeof contextBridge);
-  console.log('ipcRenderer:', typeof ipcRenderer);
+// Expose protected methods to renderer process
+contextBridge.exposeInMainWorld('electronAPI', {
+  // ==================== Satker API ====================
+  satker: {
+    get: () => ipcRenderer.invoke('satker:get'),
+    update: (data) => ipcRenderer.invoke('satker:update', data)
+  },
 
-  if (!contextBridge) {
-    throw new Error('contextBridge is not available!');
-  }
-  
-  if (!ipcRenderer) {
-    throw new Error('ipcRenderer is not available!');
-  }
+  // ==================== Pejabat API ====================
+  pejabat: {
+    list: () => ipcRenderer.invoke('pejabat:list'),
+    create: (data) => ipcRenderer.invoke('pejabat:create', data),
+    update: (id, data) => ipcRenderer.invoke('pejabat:update', { id, data }),
+    delete: (id) => ipcRenderer.invoke('pejabat:delete', id)
+  },
 
-  // Helper to create IPC invoke wrapper
-  const invoke = (channel) => (...args) => ipcRenderer.invoke(channel, ...args);
+  // ==================== Unit Kerja API ====================
+  unitKerja: {
+    list: () => ipcRenderer.invoke('unit-kerja:list'),
+    create: (data) => ipcRenderer.invoke('unit-kerja:create', data),
+    update: (id, data) => ipcRenderer.invoke('unit-kerja:update', { id, data }),
+    delete: (id) => ipcRenderer.invoke('unit-kerja:delete', id)
+  },
 
-  console.log('🔧 Starting to expose electronAPI...');
+  // ==================== Pegawai API ====================
+  pegawai: {
+    list: (params) => ipcRenderer.invoke('pegawai:list', params),
+    get: (id) => ipcRenderer.invoke('pegawai:get', id),
+    create: (data) => ipcRenderer.invoke('pegawai:create', data),
+    update: (id, data) => ipcRenderer.invoke('pegawai:update', { id, data }),
+    delete: (id) => ipcRenderer.invoke('pegawai:delete', id),
+    importCsv: (content) => ipcRenderer.invoke('pegawai:import-csv', content),
+    exportCsv: (filters) => ipcRenderer.invoke('pegawai:export-csv', filters)
+  },
 
-  // Expose protected methods to renderer process
-  contextBridge.exposeInMainWorld('electronAPI', {
+  // ==================== Supplier API ====================
+  supplier: {
+    list: (params) => ipcRenderer.invoke('supplier:list', params),
+    get: (id) => ipcRenderer.invoke('supplier:get', id),
+    create: (data) => ipcRenderer.invoke('supplier:create', data),
+    update: (id, data) => ipcRenderer.invoke('supplier:update', { id, data }),
+    delete: (id) => ipcRenderer.invoke('supplier:delete', id),
+    search: (params) => ipcRenderer.invoke('supplier:search', params)
+  },
+
+  // ==================== DIPA API ====================
+  dipa: {
+    // DIPA CRUD
+    list: (params) => ipcRenderer.invoke('dipa:list', params),
+    get: (id) => ipcRenderer.invoke('dipa:get', id),
+    create: (data) => ipcRenderer.invoke('dipa:create', data),
+    update: (id, data) => ipcRenderer.invoke('dipa:update', { id, data }),
+
+    // Revisi
+    revisiList: (dipaId) => ipcRenderer.invoke('dipa:revisi:list', dipaId),
+    revisiUpload: (dipaId, data) => ipcRenderer.invoke('dipa:revisi:upload', { dipaId, data }),
+    revisiSetActive: (dipaId, revisiId) => ipcRenderer.invoke('dipa:revisi:set-active', { dipaId, revisiId }),
+    revisiDelete: (dipaId, revisiId) => ipcRenderer.invoke('dipa:revisi:delete', { dipaId, revisiId }),
+
+    // Items
+    itemsList: (params) => ipcRenderer.invoke('dipa:items:list', params),
+    itemsHierarki: (revisiId) => ipcRenderer.invoke('dipa:items:hierarki', revisiId),
+    itemsSisaPagu: (itemId) => ipcRenderer.invoke('dipa:items:sisa-pagu', itemId),
+
+    // CSV Parser
+    parseCSV: (csvContent) => ipcRenderer.invoke('dipa:parse-csv', csvContent)
+  },
+
+  // ==================== SBM API ====================
+  sbm: {
+    // SBM Tahun CRUD
+    tahunList: () => ipcRenderer.invoke('sbm:tahun:list'),
+    tahunGet: (id) => ipcRenderer.invoke('sbm:tahun:get', id),
+    tahunCreate: (data) => ipcRenderer.invoke('sbm:tahun:create', data),
+    tahunUpdate: (id, data) => ipcRenderer.invoke('sbm:tahun:update', { id, data }),
+    tahunDelete: (id) => ipcRenderer.invoke('sbm:tahun:delete', id),
+    tahunSetActive: (id) => ipcRenderer.invoke('sbm:tahun:setActive', id),
+
+    // Uang Harian CRUD
+    uangHarianList: (sbmTahunId) => ipcRenderer.invoke('sbm:uangHarian:list', sbmTahunId),
+    uangHarianCreate: (data) => ipcRenderer.invoke('sbm:uangHarian:create', data),
+    uangHarianUpdate: (id, data) => ipcRenderer.invoke('sbm:uangHarian:update', { id, data }),
+    uangHarianDelete: (id) => ipcRenderer.invoke('sbm:uangHarian:delete', id),
+
+    // Transport CRUD
+    transportList: (sbmTahunId) => ipcRenderer.invoke('sbm:transport:list', sbmTahunId),
+    transportCreate: (data) => ipcRenderer.invoke('sbm:transport:create', data),
+    transportUpdate: (id, data) => ipcRenderer.invoke('sbm:transport:update', { id, data }),
+    transportDelete: (id) => ipcRenderer.invoke('sbm:transport:delete', id),
+
+    // Honorarium CRUD
+    honorariumList: (sbmTahunId) => ipcRenderer.invoke('sbm:honorarium:list', sbmTahunId),
+    honorariumCreate: (data) => ipcRenderer.invoke('sbm:honorarium:create', data),
+    honorariumUpdate: (id, data) => ipcRenderer.invoke('sbm:honorarium:update', { id, data }),
+    honorariumDelete: (id) => ipcRenderer.invoke('sbm:honorarium:delete', id),
+    insertDefaultHonorarium: (sbmTahunId) => ipcRenderer.invoke('sbm:honorarium:insertDefault', sbmTahunId),
+
+    // Lookup (for transaction forms)
+    lookupUangHarian: (params) => ipcRenderer.invoke('sbm:lookup:uangHarian', params),
+    lookupHonorarium: (params) => ipcRenderer.invoke('sbm:lookup:honorarium', params),
+    lookupTransport: (params) => ipcRenderer.invoke('sbm:lookup:transport', params)
+  },
+
+  // ==================== Lembar Permintaan API ====================
+  lp: {
+    // LP CRUD
+    list: (params) => ipcRenderer.invoke('lp:list', params),
+    get: (id) => ipcRenderer.invoke('lp:get', id),
+    create: (data) => ipcRenderer.invoke('lp:create', data),
+    update: (id, data) => ipcRenderer.invoke('lp:update', { id, data }),
+    delete: (id) => ipcRenderer.invoke('lp:delete', id),
+
+    // Status management
+    submit: (id) => ipcRenderer.invoke('lp:submit', id),
+    changeStatus: (id, status, keterangan) => ipcRenderer.invoke('lp:changeStatus', { id, status, keterangan }),
+    getStats: (params) => ipcRenderer.invoke('lp:stats', params),
+
+    // Items
+    itemsList: (lpId) => ipcRenderer.invoke('lp:items:list', lpId),
+    itemsCreate: (lpId, data) => ipcRenderer.invoke('lp:items:create', { lpId, data }),
+    itemsUpdate: (id, data) => ipcRenderer.invoke('lp:items:update', { id, data }),
+    itemsDelete: (id) => ipcRenderer.invoke('lp:items:delete', id),
+
+    // Logs
+    logsList: (lpId) => ipcRenderer.invoke('lp:logs:list', lpId),
+    logsCreate: (lpId, data) => ipcRenderer.invoke('lp:logs:create', { lpId, data }),
+
+    // Dokumen
+    dokumenList: (lpId) => ipcRenderer.invoke('lp:dokumen:list', lpId),
+    dokumenCreate: (lpId, data) => ipcRenderer.invoke('lp:dokumen:create', { lpId, data }),
+    dokumenDelete: (id) => ipcRenderer.invoke('lp:dokumen:delete', id),
+
+    // Print
+    print: (id, options) => ipcRenderer.invoke('lp:print', { id, options }),
+    generateNomor: (jenis, tahun) => ipcRenderer.invoke('lp:generateNomor', { jenis, tahun })
+  },
+
   // ==================== Request API ====================
   request: {
     create: (data) => ipcRenderer.invoke('request:create', data),
@@ -126,7 +243,8 @@ try {
     deleteGeneratedDocument: (documentId) => ipcRenderer.invoke('document:deleteGeneratedDocument', documentId),
 
     // Storage
-    getStorageStats: () => ipcRenderer.invoke('document:getStorageStats')
+    getStorageStats: () => ipcRenderer.invoke('document:getStorageStats'),
+    openFolder: (requestId) => ipcRenderer.invoke('document:openFolder', requestId)
   },
 
   // ==================== Report API ====================
@@ -161,44 +279,6 @@ try {
     getByUnit: (unit) => ipcRenderer.invoke('user:getByUnit', unit),
     getActivity: (id, limit) => ipcRenderer.invoke('user:getActivity', { id, limit }),
     getStats: () => ipcRenderer.invoke('user:getStats')
-  },
-
-  // ==================== Pegawai (Employee) API ====================
-  pegawai: {
-    list: (options) => ipcRenderer.invoke('pegawai:list', options),
-    get: (id) => ipcRenderer.invoke('pegawai:get', id),
-    getByNip: (nip) => ipcRenderer.invoke('pegawai:get-by-nip', nip),
-    create: (data) => ipcRenderer.invoke('pegawai:create', data),
-    update: (id, data) => ipcRenderer.invoke('pegawai:update', { id, data }),
-    delete: (id) => ipcRenderer.invoke('pegawai:delete', id),
-    search: (query) => ipcRenderer.invoke('pegawai:search', query),
-    importCsv: (csvData) => ipcRenderer.invoke('pegawai:import-csv', csvData),
-    exportCsv: () => ipcRenderer.invoke('pegawai:export-csv')
-  },
-
-  // ==================== Satker (Work Unit) API ====================
-  satker: {
-    list: (options) => ipcRenderer.invoke('satker:list', options),
-    get: (id) => ipcRenderer.invoke('satker:get', id),
-    getByKode: (kode) => ipcRenderer.invoke('satker:get-by-kode', kode),
-    create: (data) => ipcRenderer.invoke('satker:create', data),
-    update: (id, data) => ipcRenderer.invoke('satker:update', { id, data }),
-    delete: (id) => ipcRenderer.invoke('satker:delete', id),
-    search: (query) => ipcRenderer.invoke('satker:search', query),
-    getAvailablePegawai: () => ipcRenderer.invoke('satker:get-available-pegawai'),
-    setOfficial: (satker_id, officialType, nip) => ipcRenderer.invoke('satker:set-official', { satker_id, officialType, nip })
-  },
-
-  // ==================== DIPA (Budget) API ====================
-  dipa: {
-    list: (options) => ipcRenderer.invoke('dipa:list', options),
-    get: (id) => ipcRenderer.invoke('dipa:get', id),
-    getSummary: (tahun) => ipcRenderer.invoke('dipa:get-summary', tahun),
-    create: (data) => ipcRenderer.invoke('dipa:create', data),
-    update: (id, data) => ipcRenderer.invoke('dipa:update', { id, data }),
-    delete: (id) => ipcRenderer.invoke('dipa:delete', id),
-    importCsv: (csvData) => ipcRenderer.invoke('dipa:import-csv', csvData),
-    exportCsv: (filters) => ipcRenderer.invoke('dipa:export-csv', filters)
   },
 
   // ==================== Legacy DB API (backward compatibility) ====================
@@ -263,29 +343,8 @@ try {
     getFiles: () => ipcRenderer.invoke('log:getFiles'),
     getContents: (type, lines) => ipcRenderer.invoke('log:getContents', { type, lines })
   }
-  });
+});
 
-  console.log('✅ contextBridge.exposeInMainWorld completed successfully');
-  console.log('✅ electronAPI should now be available in renderer');
-
-} catch (error) {
-  console.error('❌❌❌ CRITICAL ERROR IN PRELOAD SCRIPT ❌❌❌');
-  console.error('Error:', error);
-  console.error('Stack:', error.stack);
-  
-  // Try to expose error info to renderer
-  try {
-    if (typeof window !== 'undefined') {
-      window.PRELOAD_ERROR = {
-        message: error.message,
-        stack: error.stack
-      };
-    }
-  } catch (e) {
-    console.error('Failed to expose preload error:', e);
-  }
-}
-
-// Log that preload is complete
-console.log('=== PRELOAD SCRIPT LOADED ===');
-console.log('Available APIs: request, vendor, contract, payment, document, report, user, pegawai, satker, dipa, db, app, dialog, window, log');
+// Log that preload is loaded
+console.log('Preload script loaded successfully');
+console.log('Available APIs: satker, pejabat, unitKerja, pegawai, supplier, dipa, sbm, lp, request, vendor, contract, payment, document, report, user, db, app, dialog, window, log');

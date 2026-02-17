@@ -15,10 +15,22 @@ const PPKDatabase = require('./database');
 const { mainLogger, ipcLogger } = require('./logger');
 const { initializeApis, routes } = require('./api');
 const { createErrorResponse } = require('./utils/errorHandler');
+const SatkerApi = require('./api/satkerApi');
+const PegawaiApi = require('./api/pegawaiApi');
+const SupplierApi = require('./api/supplierApi');
+const DipaApi = require('./api/dipaApi');
+const SbmApi = require('./api/sbmApi');
+const LembarPermintaanApi = require('./api/lembarPermintaanApi');
 
 // Application state
 let mainWindow;
 let database;
+let satkerApi;
+let pegawaiApi;
+let supplierApi;
+let dipaApi;
+let sbmApi;
+let lpApi;
 
 // Prevent multiple instances
 const gotTheLock = app.requestSingleInstanceLock();
@@ -62,8 +74,6 @@ function createWindow() {
     console.log('✅ Preload script found at:', preloadPath);
     mainLogger.info('Preload script found', { preloadPath });
   }
-
-  const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
   
   mainWindow = new BrowserWindow({
     width: 1400,
@@ -156,9 +166,9 @@ function createWindow() {
 
   // Load app
   if (isDev) {
-    // Try different Vite ports
-    const vitePort = process.env.VITE_PORT || 5173;
-    const viteUrl = `http://localhost:${vitePort}`;
+    // Try different Vite ports - check which one is running
+    let vitePort = 5174; // Try 5174 first (from vite.config.js)
+    let viteUrl = `http://localhost:${vitePort}`;
     console.log('Loading Vite dev server from:', viteUrl);
     mainWindow.loadURL(viteUrl);
     mainWindow.webContents.openDevTools();
@@ -194,8 +204,13 @@ function initializeDatabase() {
     mainLogger.info('Initializing database');
     database = new PPKDatabase();
 
-    // Initialize all API modules with database
-    initializeApis(database);
+    // Initialize class-based APIs (they register their own IPC handlers)
+    satkerApi = new SatkerApi(database.db);
+    pegawaiApi = new PegawaiApi(database.db);
+    supplierApi = new SupplierApi(database.db);
+    dipaApi = new DipaApi(database.db);
+    sbmApi = new SbmApi(database.db);
+    lpApi = new LembarPermintaanApi(database.db);
 
     mainLogger.info('Database initialized successfully');
     return true;

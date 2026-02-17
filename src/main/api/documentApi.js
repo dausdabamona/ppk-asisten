@@ -821,6 +821,40 @@ class DocumentApi extends BaseApi {
   }
 
   /**
+   * Open document folder in file explorer
+   * @param {string} requestId - Optional request ID to open specific folder
+   */
+  openFolder(requestId = null) {
+    return this.execute(() => {
+      const { shell } = require('electron');
+      this.initializeStorage();
+
+      let folderPath = this.documentsPath;
+
+      if (requestId) {
+        const year = new Date().getFullYear();
+        // Try to find documents for this request
+        try {
+          const docs = this.documentGenerator.getDocuments(requestId);
+          if (docs && docs.length > 0 && docs[0].file_path) {
+            folderPath = path.dirname(docs[0].file_path);
+          }
+        } catch (e) {
+          // Use default path
+        }
+      }
+
+      // Ensure folder exists
+      if (!fs.existsSync(folderPath)) {
+        fs.mkdirSync(folderPath, { recursive: true });
+      }
+
+      shell.openPath(folderPath);
+      return { success: true, path: folderPath };
+    }, { action: 'openFolder', requestId });
+  }
+
+  /**
    * Get next sequence number for document type
    * @private
    */
