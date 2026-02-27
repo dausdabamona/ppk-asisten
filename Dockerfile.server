@@ -1,0 +1,37 @@
+# PPK Assistant Sync Server
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install dependencies for better-sqlite3
+RUN apk add --no-cache python3 make g++ sqlite
+
+# Copy package files
+COPY package*.json ./
+
+# Install production dependencies only
+RUN npm ci --only=production --ignore-scripts
+
+# Rebuild better-sqlite3 for alpine
+RUN npm rebuild better-sqlite3
+
+# Copy server files
+COPY src/server ./src/server
+
+# Create data directory
+RUN mkdir -p /app/data /app/releases
+
+# Environment variables
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV DB_PATH=/app/data/ppk_server.db
+
+# Expose port
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
+
+# Run server
+CMD ["node", "src/server/index.js"]

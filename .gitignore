@@ -5,3 +5,9 @@ node_modules/
 dist/
 release/
 *.AppImage
+
+# Test outputs
+test-output/
+# Capacitor Android project
+android/
+ios/
